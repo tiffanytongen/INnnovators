@@ -5,19 +5,19 @@ import { Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
-import { BigShoulders_700Bold, BigShoulders_800ExtraBold, BigShoulders_900Black } from "@expo-google-fonts/big-shoulders";
-import { FamiljenGrotesk_400Regular, FamiljenGrotesk_500Medium, FamiljenGrotesk_600SemiBold, FamiljenGrotesk_700Bold } from "@expo-google-fonts/familjen-grotesk";
+import { YoungSerif_400Regular } from "@expo-google-fonts/young-serif";
+import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
 import Participant from "./src/Participant";
 import Organizer from "./src/Organizer";
 import { ALERT, F, NIGHT, defaultServer, store, type Pal } from "./src/theme";
-import { PalContext } from "./src/ui";
+import { PalContext, Stars } from "./src/ui";
 
 type Mode = "participant" | "organizer";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    BigShoulders_700Bold, BigShoulders_800ExtraBold, BigShoulders_900Black,
-    FamiljenGrotesk_400Regular, FamiljenGrotesk_500Medium, FamiljenGrotesk_600SemiBold, FamiljenGrotesk_700Bold,
+    YoungSerif_400Regular,
+    Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold,
   });
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<Mode>("participant");
@@ -49,15 +49,16 @@ export default function App() {
       <PalContext.Provider value={pal}>
         <StatusBar style={pal.name === "alert" ? "dark" : "light"} />
         <SafeAreaView style={{ flex: 1, backgroundColor: pal.bg }} edges={["top", "bottom"]}>
-          {/* Role switch: wordmark left, two plain tabs right */}
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, borderBottomWidth: 1, borderBottomColor: pal.line }}>
-            <Text style={{ fontFamily: fontsLoaded ? F.display : undefined, fontSize: 22, color: pal.ink, letterSpacing: 0.5 }}>PLAN B</Text>
-            <View style={{ flexDirection: "row", gap: 18 }}>
+          <Stars />
+          {/* Role switch: wordmark left, pill switch right */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4, gap: 12 }}>
+            <Text style={{ fontFamily: fontsLoaded ? F.display : undefined, fontSize: 24, color: pal.name === "alert" ? pal.ink : pal.accent }}>Plan B</Text>
+            <View style={{ flexDirection: "row", padding: 4, borderRadius: 999, backgroundColor: pal.name === "alert" ? "rgba(23,18,59,0.1)" : "rgba(255,244,222,0.08)", borderWidth: 1, borderColor: pal.line }}>
               {(["participant", "organizer"] as Mode[]).map((m) => {
                 const on = mode === m;
                 return (
-                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 44, justifyContent: "center", borderBottomWidth: 3, borderBottomColor: on ? (pal.name === "alert" ? pal.ink : pal.accent) : "transparent" }}>
-                    <Text style={{ fontFamily: fontsLoaded ? F.bodySemi : undefined, fontSize: 15, color: on ? pal.ink : pal.sub }}>
+                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.ink : "transparent" }}>
+                    <Text style={{ fontFamily: fontsLoaded ? F.bodySemi : undefined, fontSize: 14, color: on ? pal.bg : pal.sub }}>
                       {m === "participant" ? "Participant" : "Organizer"}
                     </Text>
                   </Pressable>

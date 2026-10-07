@@ -39,12 +39,12 @@ export default function Organizer({ server }: { server: string }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={[s.gutter, { paddingTop: 18 }]}>
-        <Txt k="title" style={{ fontSize: 52, lineHeight: 48 }}>Fieldday Ops</Txt>
+        <Txt k="title" c="accent">Fieldday Ops</Txt>
         <Txt k="label" c="sub" style={{ marginTop: 6 }}>Riverside · Saturday · 15,487 attendees</Txt>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 20, marginTop: 14 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14, marginBottom: 14 }}>
           {([["incident", "Something changed"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
-            <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)} style={{ minHeight: 48, justifyContent: "center", borderBottomWidth: 4, borderBottomColor: tab === k ? p.accent : "transparent" }}>
-              <Txt k="big" c={tab === k ? "ink" : "sub"} style={{ fontSize: 21, lineHeight: 24 }}>{l}</Txt>
+            <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)} style={{ minHeight: 44, paddingHorizontal: 16, borderRadius: 999, justifyContent: "center", backgroundColor: tab === k ? p.accent : "transparent", borderWidth: 1, borderColor: tab === k ? p.accent : p.line }}>
+              <Txt k="smallStrong" c={tab === k ? "onAccent" : "ink"} style={{ fontSize: 15 }}>{l}</Txt>
             </Pressable>
           ))}
         </View>
@@ -61,7 +61,7 @@ function StepCard({ n, title, done, children }: { n: number; title: string; done
   return (
     <View style={{ gap: 14, paddingTop: 18, paddingBottom: 22, borderBottomWidth: 1, borderBottomColor: p.line }}>
       <View style={[s.gutter, { flexDirection: "row", alignItems: "flex-end", gap: 12 }]}>
-        <Txt k="huge" c={done ? "ok" : "accent"} style={{ fontSize: 48, lineHeight: 46 }}>{done ? "✓" : String(n).padStart(2, "0")}</Txt>
+        <Txt k="huge" c={done ? "ok" : "accent"} style={{ fontSize: 40, lineHeight: 46 }}>{done ? "✓" : n}</Txt>
         <Txt k="headline" style={{ flex: 1, paddingBottom: 3 }}>{title}</Txt>
       </View>
       <View style={[s.gutter, { gap: 12 }]}>{children}</View>
@@ -153,10 +153,10 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
       {preview && (
         <StepCard n={2} title="What people will see" done={!!sent}>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
-            <Txt k="huge" c="accent" style={{ fontSize: 88, lineHeight: 80 }}>{preview.affected_people.toLocaleString()}</Txt>
+            <Txt k="huge" c="accent" style={{ fontSize: 64, lineHeight: 70 }}>{preview.affected_people.toLocaleString()}</Txt>
             <Txt k="bodyStrong" style={{ flex: 1, paddingBottom: 6 }}>people get a new plan. Everyone else keeps their usual way home.</Txt>
           </View>
-          <View style={{ marginHorizontal: -20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: p.line }}>
+          <View style={{ borderRadius: 22, overflow: "hidden", borderWidth: 2, borderColor: p.line }}>
             <SiteMap map={preview.map} closedGates={preview.closed_gates} closedPlaces={preview.closed_places} storm={preview.storm} gateDelta={preview.gate_delta} />
           </View>
           <Txt k="small" c="sub">Red = closed. Yellow = extra people at that gate, so you know where to send staff.</Txt>
@@ -194,7 +194,7 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
             <View style={{ gap: 10 }}>
               <View style={s.row}>
                 <Txt k="label" c="sub">Approved by</Txt>
-                <Field value={approver} onChangeText={setApprover} accessibilityLabel="Approved by" style={{ flex: 1, paddingVertical: 10 }} />
+                <Field value={approver} onChangeText={setApprover} accessibilityLabel="Approved by" style={{ flex: 1, minWidth: 0, paddingVertical: 10 }} />
               </View>
               <Button kind="yellow" title={`Approve & send to ${preview.affected_people.toLocaleString()} phones`} onPress={send} busy={busy === "send"} disabled={!approver.trim()} />
             </View>
@@ -272,8 +272,8 @@ function PremortemTab({ server }: { server: string }) {
       <View style={[s.gutter, { gap: 12 }]}>
         <Label>{label(current.scenario)}</Label>
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 14, flexWrap: "wrap" }}>
-          {changed && <Txt k="huge" c="sub" style={{ textDecorationLine: "line-through", fontSize: 72, lineHeight: 70 }}>{before}</Txt>}
-          <Txt k="mega" c={current.no_plan ? "danger" : "ok"} style={{ fontSize: 120, lineHeight: 108 }}>{current.no_plan}</Txt>
+          {changed && <Txt k="huge" c="sub" style={{ textDecorationLine: "line-through", fontSize: 52, lineHeight: 60 }}>{before}</Txt>}
+          <Txt k="mega" c={current.no_plan ? "danger" : "ok"} style={{ fontSize: 88, lineHeight: 96 }}>{current.no_plan}</Txt>
           <Txt k="big" style={{ paddingBottom: 12, flexShrink: 1 }}>people have{"\n"}no way home</Txt>
         </View>
 
@@ -287,7 +287,7 @@ function PremortemTab({ server }: { server: string }) {
         {current.no_plan > 0 && (
           <View style={{ gap: 10 }}>
             <Button kind="light" title={busy === "explain" ? "AI is thinking…" : "Explain with AI"} busy={busy === "explain"} onPress={() => run("explain", async () => setExplain((await postJSON<{ text: string }>(`${server}/api/premortem/explain`, { scenario: current.scenario })).text))} />
-            {explain ? <Txt style={{ backgroundColor: p.raised, padding: 14, borderRadius: 4 }}>{explain}</Txt> : null}
+            {explain ? <Txt style={{ backgroundColor: p.raised, padding: 14, borderRadius: 16 }}>{explain}</Txt> : null}
           </View>
         )}
       </View>

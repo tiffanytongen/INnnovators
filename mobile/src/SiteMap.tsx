@@ -27,32 +27,33 @@ type Props = {
 
 const PAD = 48;
 
-// Map colours follow the screen: a dark map at night, a paper map on the yellow Plan B screen.
+// Map colours follow the screen: an indigo night map, or a cream paper map on the gold Plan B screen.
 function mapColours(p: Pal) {
   const dark = p.name === "night";
   return {
     bg: p.bg,
-    river: dark ? "#14222B" : "#F6E9A6",
-    riverText: dark ? "#7FA3B8" : "#4D4500",
-    site: dark ? "#181A15" : "#FFE466",
-    siteStroke: dark ? "#33362D" : "#0E0E0C",
-    path: dark ? "#4A4A42" : "#7A6B00",
-    pathCovered: dark ? "#6B6A60" : "#3D3500",
-    pill: dark ? "#0E0E0C" : "#FFD400",
-    pillStage: dark ? "#22221E" : "#0E0E0C",
-    pillStroke: dark ? "#3A3933" : "#0E0E0C",
-    text: dark ? "#E9E5DA" : "#0E0E0C",
-    textStage: dark ? "#F2EFE6" : "#FFD400",
-    ink: dark ? "#F2EFE6" : "#0E0E0C",
-    onInk: dark ? "#0E0E0C" : "#FFD400",
-    route: dark ? "#FFD400" : "#0E0E0C",
-    gateActive: dark ? "#FFD400" : "#0E0E0C",
-    onGateActive: dark ? "#0E0E0C" : "#FFD400",
-    red: dark ? "#FF6A47" : "#A3200F",
-    redBg: dark ? "#2A1510" : "#FFD9C7",
-    you: dark ? "#6FB6FF" : "#0B3FB3",
+    river: dark ? "#223F80" : "#BFD3F2",
+    riverText: dark ? "#B7CBF2" : "#1F3D7A",
+    site: dark ? "#241C57" : "#FFF4DE",
+    siteStroke: dark ? "#3A307A" : "#17123B",
+    path: dark ? "#5A4F9A" : "#B8A77A",
+    pathCovered: dark ? "#7E74C2" : "#6E5F3A",
+    pill: dark ? "#17123B" : "#FFF4DE",
+    pillStage: dark ? "#FFF4DE" : "#17123B",
+    pillStroke: dark ? "#4A3F92" : "#17123B",
+    text: dark ? "#E8E2FA" : "#17123B",
+    textStage: dark ? "#17123B" : "#FFF4DE",
+    ink: dark ? "#FFF4DE" : "#17123B",
+    onInk: dark ? "#17123B" : "#FFF4DE",
+    route: dark ? "#FFC94A" : "#FF5FA2",
+    gateActive: dark ? "#FFC94A" : "#FF5FA2",
+    onGateActive: "#17123B",
+    red: dark ? "#FF8DBE" : "#9E1550",
+    redBg: dark ? "#3A1838" : "#FFD6E6",
+    you: dark ? "#3FD0C9" : "#0B5E5A",
   };
 }
+
 const pts = (p: Pt[]) => p.map((q) => q.join(",")).join(" ");
 
 export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight, gateDelta }: Props) {
@@ -70,7 +71,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
     <Svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ aspectRatio: W / H }}>
       <Rect x={0} y={0} width={W} height={H} fill={K.bg} />
       <Path d={`M0 ${map.river.y - 10} Q ${W / 2} ${map.river.y - 2} ${W} ${map.river.y - 12} L ${W} ${H} L 0 ${H} Z`} fill={K.river} />
-      <SvgText x={W - 12} y={map.river.y + 16} textAnchor="end" fontSize={9} fill={K.riverText} fontFamily={F.displaySemi} letterSpacing={1}>{map.river.label}</SvgText>
+      <SvgText x={W - 12} y={map.river.y + 16} textAnchor="end" fontSize={9} fill={K.riverText} fontFamily={F.bodyBold} letterSpacing={1}>{map.river.label}</SvgText>
       <G transform={`translate(${PAD},0)`}>
         <Polygon points={pts(map.site)} fill={K.site} stroke={K.siteStroke} strokeWidth={1.5} />
 

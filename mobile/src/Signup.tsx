@@ -42,7 +42,7 @@ export default function Signup({ server, onDone, onCancel }: { server: string; o
     <ScrollView contentContainerStyle={{ paddingVertical: 16, gap: 24, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <View style={[s.gutter, { alignItems: "flex-start" }]}>
         <Btn kind="ghost" title="← Back" onPress={onCancel} style={{ paddingHorizontal: 0, minHeight: 44 }} />
-        <Txt k="title" style={{ fontSize: 54, lineHeight: 54 }}>Your Plan B</Txt>
+        <Txt k="title" style={{ fontSize: 40, lineHeight: 48 }}>Your Plan B</Txt>
         <Txt c="sub" style={{ marginTop: 6 }}>30 seconds. We use this to plan your way home tonight, and what to do if things change.</Txt>
       </View>
 

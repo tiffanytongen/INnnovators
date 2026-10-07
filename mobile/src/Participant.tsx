@@ -9,7 +9,7 @@ import { strings } from "../../lib/i18n";
 import SiteMap, { type MapData } from "./SiteMap";
 import Signup from "./Signup";
 import { getJSON, store, hhmm, s } from "./theme";
-import { Btn, Field, Label, Notice, Txt, usePal } from "./ui";
+import { Btn, Field, Label, Notice, Ticket, Txt, usePal } from "./ui";
 
 // ---- types (same shape as lib/plan.ts, kept local so the app doesn't pull in server code) ----
 type Transport = { mode: "train" | "shuttle" | "taxi" | "pickup"; ref_id: string; line: string; platform: string; depart: string | null };
@@ -73,8 +73,8 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
   return (
     <ScrollView contentContainerStyle={{ paddingVertical: 28, gap: 22 }}>
       <View style={[s.gutter, { gap: 2 }]}>
-        <Txt k="title" style={{ fontSize: 54, lineHeight: 54 }}>Plan A is your day.</Txt>
-        <Txt k="title" c="accent" style={{ fontSize: 54, lineHeight: 54 }}>Plan B is what happens when it changes.</Txt>
+        <Txt k="title" style={{ fontSize: 40, lineHeight: 48 }}>Plan A is your day.</Txt>
+        <Txt k="title" c="accent" style={{ fontSize: 40, lineHeight: 48 }}>Plan B is what happens when it changes.</Txt>
       </View>
 
       <View style={s.gutter}>
@@ -85,7 +85,7 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
         <Label style={s.gutter}>Open an attendee (demo)</Label>
         {HEROES.map((h) => (
           <Pressable key={h.id} accessibilityRole="button" onPress={() => onPick(h.id)} style={({ pressed }) => [s.gutter, { flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: p.line }, pressed && { backgroundColor: p.raised }]}>
-            <Txt k="huge" c="accent" style={{ width: 60 }}>{h.name[0]}</Txt>
+            <Txt k="huge" c="accent" style={{ width: 56, fontSize: 44, lineHeight: 52 }}>{h.name[0]}</Txt>
             <View style={{ flex: 1 }}>
               <Txt k="big">{h.name}</Txt>
               <Txt k="small" c="sub">{h.desc}</Txt>
@@ -201,20 +201,22 @@ type ScreenProps = {
   t: Strings; name: (id: string | null) => string; server: string;
 };
 
-// Edge-to-edge map, ruled top and bottom like a printed insert.
+// The map sits in a rounded panel, inset from the screen edges.
 function RouteMap({ bundle, st, scenarioKey }: { bundle: Bundle; st: Step; scenarioKey: string }) {
   const p = usePal();
   if (!bundle.map) return null;
   const closed = bundle.closed?.[scenarioKey];
   return (
-    <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: p.line }}>
-      <SiteMap
-        map={bundle.map}
-        closedGates={closed?.gates}
-        closedPlaces={closed?.places}
-        storm={closed?.storm}
-        highlight={{ route_id: st.route_id, gate_id: st.gate_id, dest_id: st.transport.mode === "train" ? "flinders_st" : st.transport.platform, meetup_id: bundle.profile.group ? st.group_meetup : null }}
-      />
+    <View style={[s.gutter]}>
+      <View style={{ borderRadius: 22, overflow: "hidden", borderWidth: 2, borderColor: p.line }}>
+        <SiteMap
+          map={bundle.map}
+          closedGates={closed?.gates}
+          closedPlaces={closed?.places}
+          storm={closed?.storm}
+          highlight={{ route_id: st.route_id, gate_id: st.gate_id, dest_id: st.transport.mode === "train" ? "flinders_st" : st.transport.platform, meetup_id: bundle.profile.group ? st.group_meetup : null }}
+        />
+      </View>
     </View>
   );
 }
@@ -226,89 +228,116 @@ function transportLine(st: Step, t: Strings, name: (id: string | null) => string
 }
 const gateLetter = (id: string) => id.replace("gate_", "");
 
-// The "departure board": a huge gate letter, where it leads, and the time.
-function Board({ st, t, name }: { st: Step; t: Strings; name: (id: string | null) => string }) {
+function Stub({ label, value }: { label: string; value: string }) {
   return (
-    <View style={[s.gutter, { flexDirection: "row", alignItems: "flex-end", gap: 14 }]}>
-      <Txt k="mega">{gateLetter(st.gate_id)}</Txt>
-      <View style={{ flex: 1, paddingBottom: 14, gap: 4 }}>
-        <Txt k="label" c="sub">{t.gate} · {t[st.transport.mode]}</Txt>
-        <Txt k="bodyStrong">{name(st.gate_id)}</Txt>
-        <Txt k="small" c="sub">{transportLine(st, t, name)}</Txt>
-        {st.transport.depart ? <Txt k="huge" style={{ marginTop: 4 }}>{st.transport.depart}</Txt> : null}
-      </View>
+    <View style={{ flex: 1, gap: 2 }}>
+      <Txt k="label" c="ticketSub">{label}</Txt>
+      <Txt k="bodyStrong" c="onTicket" style={{ fontSize: 15, lineHeight: 20 }}>{value}</Txt>
+    </View>
+  );
+}
+
+// "Your ticket home": the departure time big, then exit / ride / route on the stub.
+function HomeTicket({ st, t, name, title, onOpen, cta }: { st: Step; t: Strings; name: (id: string | null) => string; title: string; onOpen?: () => void; cta?: string }) {
+  const p = usePal();
+  return (
+    <View style={s.gutter}>
+      <Ticket
+        top={
+          <>
+            <View style={s.between}>
+              <Txt k="label" style={{ color: "#6B2E9E" }}>{title}</Txt>
+              <Txt k="smallStrong" style={{ color: "#0E6E69" }}>{t[st.transport.mode]}</Txt>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
+              <Txt k="mega" c="onTicket" style={{ fontSize: st.transport.depart ? 72 : 96, lineHeight: st.transport.depart ? 80 : 100 }}>{st.transport.depart ?? gateLetter(st.gate_id)}</Txt>
+              {st.transport.depart ? <Txt k="smallStrong" c="ticketSub" style={{ paddingBottom: 14, flexShrink: 1 }}>{t.departs.toLowerCase()}</Txt> : null}
+            </View>
+          </>
+        }
+        bottom={
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <Stub label={t.gate} value={name(st.gate_id)} />
+            <Stub label={t[st.transport.mode]} value={transportLine(st, t, name)} />
+          </View>
+        }
+        footer={
+          onOpen ? (
+            <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [{ minHeight: 54, borderRadius: 16, backgroundColor: p.onTicket, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 }, pressed && s.pressed]}>
+              <Txt k="big" style={{ color: "#FFC94A" }}>{cta}</Txt>
+              <Txt k="big" style={{ color: "#FFC94A" }}>→</Txt>
+            </Pressable>
+          ) : null
+        }
+      />
     </View>
   );
 }
 
 function SignalTag({ online }: { online: boolean }) {
-  return <Txt k="label" c={online ? "ok" : "sub"}>{online ? "● Online" : "Offline · saved"}</Txt>;
+  const p = usePal();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: p.line }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: online ? p.ok : p.sub }} />
+      <Txt k="smallStrong">{online ? "Online" : "Offline · saved"}</Txt>
+    </View>
+  );
 }
 
 // ---------- HOME ----------
 function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, name, server, onOpen, onSwitch }: ScreenProps & { onOpen: () => void; onSwitch: () => void }) {
-  const p = usePal();
   const was = bundle.plans.NORMAL;
   const wasChanged = isPlanB && was && (was.gate_id !== plan.gate_id || was.transport.depart !== plan.transport.depart);
 
   return (
-    <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ paddingTop: 20, paddingBottom: 28, gap: 22 }}>
-        <View style={[s.gutter, s.between]}>
-          <View style={{ flexShrink: 1 }}>
-            <Txt k="title">{t.hi} {bundle.profile.name}</Txt>
-            <Txt k="label" c="sub" style={{ marginTop: 6 }}>{t.festivalDay}</Txt>
-          </View>
-          <SignalTag online={online} />
+    <ScrollView contentContainerStyle={{ paddingTop: 18, paddingBottom: 32, gap: 24 }}>
+      <View style={[s.gutter, s.between, { alignItems: "center" }]}>
+        <View style={{ flexShrink: 1 }}>
+          <Txt k="title" c="accent">{t.hi} {bundle.profile.name}</Txt>
+          <Txt k="label" c="sub" style={{ marginTop: 4 }}>{t.festivalDay}</Txt>
         </View>
-
-        {/* Status: on Plan B the screen is already yellow, so this is just the words, big. */}
-        <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [s.gutter, { gap: 10 }, pressed && s.pressed]}>
-          {isPlanB ? (
-            <>
-              <Label>{`${t.changed}${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}`}</Label>
-              <Txt k="headline">{plan.text_localised}</Txt>
-              {wasChanged ? (
-                <Txt k="smallStrong" c="sub" style={{ textDecorationLine: "line-through" }}>
-                  Plan A: Gate {gateLetter(was.gate_id)}{was.transport.depart ? ` · ${was.transport.depart}` : ""} · {t[was.transport.mode]}
-                </Txt>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Label>{t.planA}</Label>
-              <Txt k="headline">{t.allNormal}.</Txt>
-              <Txt c="sub">{t.allNormalSub}</Txt>
-            </>
-          )}
-        </Pressable>
-
-        <View style={{ gap: 14 }}>
-          <Label style={s.gutter}>{t.wayHome}</Label>
-          <Board st={plan} t={t} name={name} />
-          <RouteMap bundle={bundle} st={plan} scenarioKey={scenarioKey} />
-        </View>
-
-        {plan.group_meetup && bundle.profile.group && (
-          <View style={[s.gutter, { gap: 6 }]}>
-            <Label>{t.ifSeparated}</Label>
-            <Txt k="big">{name(plan.group_meetup)}</Txt>
-          </View>
-        )}
-
-        <View style={[s.gutter, { gap: 4 }]}>
-          <Txt k="small" c="sub">✓ {t.savedOnPhone}</Txt>
-          <View style={{ flexDirection: "row", gap: 18 }}>
-            {online && <Btn kind="ghost" title={t.wallpaper} onPress={() => Linking.openURL(`${server}/api/wallpaper/${bundle.profile.id}`)} style={{ minHeight: 44, paddingHorizontal: 0 }} />}
-            <Btn kind="ghost" title="Switch person (demo)" onPress={onSwitch} style={{ minHeight: 44, paddingHorizontal: 0 }} />
-          </View>
-        </View>
-      </ScrollView>
-
-      <View style={{ padding: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: p.line, backgroundColor: p.bg }}>
-        <Btn title={isPlanB ? t.tapForNext : t.seePlan} onPress={onOpen} />
+        <SignalTag online={online} />
       </View>
-    </View>
+
+      {/* Status: on Plan B the whole screen is already gold, so this is just the words, big. */}
+      <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [s.gutter, { gap: 8 }, pressed && s.pressed]}>
+        {isPlanB ? (
+          <>
+            <Label>{`${t.changed}${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}`}</Label>
+            <Txt k="headline">{plan.text_localised}</Txt>
+            {wasChanged ? (
+              <Txt k="smallStrong" c="sub" style={{ textDecorationLine: "line-through" }}>
+                Plan A: Gate {gateLetter(was.gate_id)}{was.transport.depart ? ` · ${was.transport.depart}` : ""} · {t[was.transport.mode]}
+              </Txt>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Txt k="headline">{t.allNormal}.</Txt>
+            <Txt c="sub">{t.allNormalSub}</Txt>
+          </>
+        )}
+      </Pressable>
+
+      <HomeTicket st={plan} t={t} name={name} title={t.wayHome} onOpen={onOpen} cta={isPlanB ? t.tapForNext : t.seePlan} />
+
+      <RouteMap bundle={bundle} st={plan} scenarioKey={scenarioKey} />
+
+      {plan.group_meetup && bundle.profile.group && (
+        <View style={[s.gutter, { gap: 4 }]}>
+          <Label>{t.ifSeparated}</Label>
+          <Txt k="headline">{name(plan.group_meetup)}</Txt>
+        </View>
+      )}
+
+      <View style={[s.gutter, { gap: 2, alignItems: "center" }]}>
+        <Txt k="small" c="sub">✓ {t.savedOnPhone}</Txt>
+        <View style={{ flexDirection: "row", gap: 18 }}>
+          {online && <Btn kind="ghost" title={t.wallpaper} onPress={() => Linking.openURL(`${server}/api/wallpaper/${bundle.profile.id}`)} style={{ minHeight: 44, paddingHorizontal: 0 }} />}
+          <Btn kind="ghost" title="Switch person (demo)" onPress={onSwitch} style={{ minHeight: 44, paddingHorizontal: 0 }} />
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -323,10 +352,10 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={[s.bar, { borderBottomWidth: 1, borderBottomColor: p.line }]}>
+      <View style={s.bar}>
         <Btn kind="ghost" title={`← ${t.home}`} onPress={onBack} style={{ paddingHorizontal: 0, minHeight: 44 }} />
-        <View style={{ borderWidth: 1.5, borderColor: p.ink, borderRadius: 3, paddingHorizontal: 8, paddingVertical: 3 }}>
-          <Txt k="label">{isPlanB ? t.planB : t.planA}{isPlanB && trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}</Txt>
+        <View style={{ backgroundColor: p.name === "alert" ? p.ink : p.accent, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <Txt k="label" c="onAccent">{isPlanB ? t.planB : t.planA}{isPlanB && trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}</Txt>
         </View>
       </View>
       {!online && <Txt k="smallStrong" style={{ paddingHorizontal: 20, paddingVertical: 8, backgroundColor: p.raised }}>{t.offline}</Txt>}
@@ -344,7 +373,7 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
             <Label>{t.escalateTitle}</Label>
             <Txt k="headline">{plan.escalate_text_localised}</Txt>
             {notEn && <Txt c="sub">Go to the nearest info tent or show this screen to any volunteer.</Txt>}
-            <View style={{ borderWidth: 2, borderColor: p.ink, borderRadius: 4, padding: 16, gap: 6 }}>
+            <View style={{ borderWidth: 2, borderColor: p.ink, borderRadius: 18, padding: 16, gap: 6 }}>
               <Txt k="big">{t.showVolunteer}</Txt>
               <Txt>Name: {bundle.profile.name} · ID {bundle.profile.id}</Txt>
               <Txt>Planned exit: {name(plan.gate_id)} → {plan.transport.line} {plan.transport.depart ?? ""}</Txt>
@@ -359,7 +388,7 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
             </View>
 
             {/* Fixed fields from the data, never free-translated; English so a volunteer can read them. */}
-            <Board st={st} t={t} name={name} />
+            <HomeTicket st={st} t={t} name={name} title={t.wayHome} />
             <View style={[s.gutter]}>
               <Detail label={t.route} value={name(st.route_id)} />
               {st.wait_at && <Detail label={t.wait} value={name(st.wait_at)} time={st.wait_until} />}
@@ -385,7 +414,7 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
         )}
       </ScrollView>
 
-      <View style={{ padding: 16, paddingTop: 12, gap: 4, borderTopWidth: 1, borderTopColor: p.line, backgroundColor: p.bg }}>
+      <View style={{ padding: 16, paddingTop: 12, gap: 4 }}>
         {!escalating && <Btn title={t.notWork} right="↻" onPress={() => setStep(step + 1)} />}
         {step > 0 && <Btn kind="ghost" title={t.backToFirst} onPress={() => setStep(0)} />}
       </View>
