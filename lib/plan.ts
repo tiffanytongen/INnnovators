@@ -3,6 +3,17 @@ import { z } from "zod";
 import { site, placeById, serviceById, scenarios, toTime, type Profile } from "./data";
 import { feasibleOptions, worldFor, closedPlaces, leaveTime, type Option } from "./options";
 import { parseScenario } from "./scenario";
+import type { Forecast } from "./weather-types";
+
+export type JourneySelection = {
+  option_id: string;
+  departure_id: string;
+  leave_at: string;
+  boarding_deadline: string | null;
+  main_tradeoff: string;
+  forecast_times: string[];
+  missing_information: string[];
+};
 
 const TransportSchema = z.object({
   mode: z.enum(["train", "shuttle", "taxi", "pickup"]),
@@ -36,7 +47,7 @@ export const ClaudePlanSchema = z.object({
 });
 export type ClaudePlan = z.infer<typeof ClaudePlanSchema>;
 
-export type PlanStep = z.infer<z.ZodObject<typeof Step>> & { notify_contact: boolean; arrive: string };
+export type PlanStep = z.infer<z.ZodObject<typeof Step>> & { notify_contact: boolean; arrive: string; journey?: JourneySelection };
 export type Plan = PlanStep & {
   person_id: string;
   scenario: string;
@@ -48,6 +59,11 @@ export type Plan = PlanStep & {
   needs_human: boolean;
   needs_human_reason: string | null;
   generated_by: string; // model id, or "rules_fallback"
+  weather?: Forecast;
+  version?: number;
+  approved_at?: string;
+  approved_by?: string;
+  approval_id?: string;
 };
 
 export function sourceFor(scenario: string): string {
