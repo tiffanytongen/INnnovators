@@ -18,11 +18,44 @@ type Step = {
 };
 type Plan = Step & { source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean };
 type Bundle = {
-  profile: { id: string; name: string; lang: string; group: { size: number } | null };
+  profile: {
+    id: string;
+    name: string;
+    lang: string;
+    group: { size: number } | null;
+    location_at_end: string;
+  };
+
   plans: Record<string, Plan>;
   names: Record<string, string>;
   public_key: string;
   fetched_at: string;
+
+  walking?: {
+    routes: Record<
+      string,
+      {
+        name: string;
+        walk_min: number;
+        from: string[];
+        gate_id: string;
+        covered: boolean;
+        step_free: boolean;
+      }
+    >;
+
+    connections: Record<
+      string,
+      {
+        walk_min: number;
+        covered: boolean;
+        step_free: boolean;
+      }
+    >;
+  };
+
+  plan_updated_at?: string | null;
+
   map?: MapData;
   closed?: Record<string, { gates: string[]; places: string[]; storm: boolean }>;
 };
@@ -326,20 +359,50 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
               {st.group_meetup && bundle.profile.group && <Detail label={t.meet} value={`📍 ${name(st.group_meetup)}`} />}
             </View>
 
-            <RouteMap bundle={bundle} st={st} scenarioKey={scenarioKey} />
+            <WalkingCard
+  bundle={bundle}
+  st={st}
+  name={name}
+/>
+
+<RouteMap
+  bundle={bundle}
+  st={st}
+  scenarioKey={scenarioKey}
+/>
 
             {st.volunteer_escort && <Text style={s.badge}>🙋 {t.volunteer}</Text>}
             {st.notify_contact && <Text style={s.badge}>✉︎ {t.contactNotified}</Text>}
 
             <View>
-              <Text style={s.sectionLabel}>{t.why}</Text>
-              <Text style={[s.body, { marginTop: 4 }]}>{st.reason_localised}</Text>
-              {notEn && <Text style={[s.muted, { marginTop: 4 }]}>{st.reason}</Text>}
-            </View>
-            <Text style={s.tiny}>{t.source}: {plan.source}</Text>
-          </>
-        )}
-      </ScrollView>
+  <Text style={s.sectionLabel}>{t.why}</Text>
+  <Text style={[s.body, { marginTop: 4 }]}>
+    {st.reason_localised}
+  </Text>
+  {notEn && (
+    <Text style={[s.muted, { marginTop: 4 }]}>
+      {st.reason}
+    </Text>
+  )}
+</View>
+
+<Text style={s.tiny}>
+  Updated{" "}
+  {isPlanB && trigger
+    ? hhmm(trigger.issued_at)
+    : new Date(bundle.plan_updated_at ?? bundle.fetched_at).toLocaleTimeString(
+        "en-AU",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }
+      )}
+</Text>
+
+<Text style={s.tiny}>
+  {t.source}: {plan.source}
+</Text>
 
       <View style={s.footer}>
         {!escalating && (
@@ -357,14 +420,61 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
   );
 }
 
-function Detail({ label, value, time }: { label: string; value: string; time?: string | null }) {
+function WalkingCard({
+  bundle,
+  st,
+  name,
+}: {
+  bundle: Bundle;
+  st: Step;
+  name: (id: string | null) => string;
+}) {
+  const route = bundle.walking?.routes[st.route_id];
+
+  const destination =
+    st.transport.mode === "train"
+      ? "flinders_st"
+      : st.transport.platform;
+
+  const connection =
+    bundle.walking?.connections[`${st.gate_id}>${destination}`];
+
+  if (!route) return null;
+
+  const totalWalk = route.walk_min + (connection?.walk_min ?? 0);
+
   return (
-    <View style={[s.row, { borderTopWidth: 1, borderTopColor: C.line, paddingTop: 12 }]}>
-      <View style={{ flex: 1 }}>
-        <Text style={s.muted}>{label}</Text>
-        <Text style={s.cardTitle}>{value}</Text>
-      </View>
-      {time ? <Text style={s.time}>{time}</Text> : null}
+    <View style={[s.card, { gap: 8 }]}>
+      <Text style={s.sectionLabel}>Your walking route</Text>
+
+      <Text style={s.h2}>
+        🚶 {totalWalk} min walk
+      </Text>
+
+      <Text style={s.cardTitle}>
+        Walk to {name(st.gate_id)}
+      </Text>
+
+      <Text style={s.body}>
+        From {name(bundle.profile.location_at_end)}, follow {route.name}.
+        Then continue to {name(destination)}.
+      </Text>
+
+      <Text style={s.muted}>
+        {name(bundle.profile.location_at_end)}
+        {" → "}
+        {name(st.gate_id)}
+        {" → "}
+        {name(destination)}
+      </Text>
+
+      {route.covered && (
+        <Text style={s.muted}>☂ Covered route</Text>
+      )}
+
+      {route.step_free && (
+        <Text style={s.muted}>♿ Step-free</Text>
+      )}
     </View>
   );
 }
