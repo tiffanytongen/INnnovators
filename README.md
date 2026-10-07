@@ -4,7 +4,32 @@
 
 Hackathon prototype (Fieldday × Riverside, Track 2). Each attendee gets a pre-made plan for the normal night and for each likely disruption, cached on their phone. Staff type what's happening, approve, and a tiny signed trigger switches every phone to that person's next step, even if the phone has since lost signal.
 
-## Setup
+## Team setup (run it on your own laptop)
+
+You need: **Node.js 20 or newer** (`node -v` to check; install from nodejs.org), **Git**, and **Expo Go** on your phone.
+
+```bash
+git clone https://github.com/tiffanytongen/INnnovators.git plan-b
+cd plan-b
+npm install
+cd mobile && npm install && cd ..
+cp .env.example .env.local      # then paste an Anthropic API key after ANTHROPIC_API_KEY=
+```
+
+Run it (two terminals, both inside `plan-b`):
+
+```bash
+npm run build && npm start      # terminal 1: website + server → http://localhost:3000
+npm run mobile                  # terminal 2: phone app → scan the QR code with Expo Go
+```
+
+- Your phone and laptop must be on the same Wi-Fi (a phone hotspot is most reliable).
+- Without an API key, everything works except **Check** (organiser) and generating new plans.
+- While editing website code, `npm run dev` reloads on save (offline mode only works with `npm start`).
+- Phone app code: `mobile/App.tsx` and `mobile/SiteMap.tsx`. Shared logic: `lib/`. Website pages: `app/`.
+- Get the latest before you start: `git pull`. Save your work: `git add -A && git commit -m "what you changed" && git push`.
+
+## Setup (original notes)
 
 ```bash
 npm install
