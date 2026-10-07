@@ -34,21 +34,27 @@ type Premortem = {
 const label = (code: string) => (code === "NORMAL" ? "Normal night" : (parseScenario(code) ?? []).map(describePart).join(" + "));
 
 export default function Organizer({ server }: { server: string }) {
-  const [tab, setTab] = useState<"incident" | "premortem">("incident");
+  const [tab, setTab] = useState<"incident" | "crowd" | "premortem">("incident");
   return (
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
         <Text style={s.hello}>Fieldday Ops</Text>
         <Text style={s.muted}>Riverside · Saturday · 15,487 attendees</Text>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-          {([["incident", "Something changed"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
+          {([["incident", "Something changed"], ["crowd", "Live crowd"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
             <Pressable key={k} onPress={() => setTab(k)} style={[s.tag, { backgroundColor: tab === k ? C.text : C.card, borderWidth: 1, borderColor: tab === k ? C.text : C.line, paddingHorizontal: 14, paddingVertical: 8 }]}>
               <Text style={{ color: tab === k ? "#fff" : C.text, fontWeight: "700", fontSize: 14 }}>{l}</Text>
             </Pressable>
           ))}
         </View>
       </View>
-      {tab === "incident" ? <Incident server={server} onPremortem={() => setTab("premortem")} /> : <PremortemTab server={server} />}
+      {tab === "incident" ? (
+        <Incident server={server} onPremortem={() => setTab("premortem")} />
+      ) : tab === "crowd" ? (
+        <CrowdTab server={server} />
+      ) : (
+        <PremortemTab server={server} />
+      )}
     </View>
   );
 }
@@ -209,6 +215,151 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
       <Pressable onPress={allClear} disabled={!!busy}>
         <Text style={[s.smallLink, { textAlign: "center", marginTop: 6 }]}>All clear: put everyone back on Plan A</Text>
       </Pressable>
+    </ScrollView>
+  );
+}
+
+
+type CrowdLevel = "low" | "moderate" | "heavy" | "closed";
+
+type CrowdState = Record<
+  string,
+  {
+    level: CrowdLevel;
+    updated_at: string;
+  }
+>;
+
+const CROWD_LABELS: Record<CrowdLevel, string> = {
+  low: "🟢 Low",
+  moderate: "🟡 Moderate",
+  heavy: "🔴 Heavy",
+  closed: "⛔ Closed",
+};
+
+const ROUTE_NAMES: Record<string, string> = {
+  route_A_open: "River Stage → Gate A",
+  route_B_lawn: "Lawn path → Gate B",
+  route_B_canopy: "Canopy walk → Gate B",
+  covered_path_2: "Covered path → Gate C",
+  route_C_open: "Open path → Gate C",
+  ramp_path_D: "Accessible ramp → Gate D",
+};
+
+function CrowdTab({ server }: { server: string }) {
+  const [crowd, setCrowd] = useState<CrowdState>({});
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  async function refresh() {
+    const res = await getJSON<{ crowd: CrowdState }>(
+      `${server}/api/crowd`
+    );
+    setCrowd(res.crowd);
+  }
+
+  useEffect(() => {
+    refresh().catch((e) => setError(String(e)));
+  }, [server]);
+
+  async function update(routeId: string, level: CrowdLevel) {
+    setBusy(routeId);
+    setError("");
+
+    try {
+      const res = await postJSON<{ crowd: CrowdState }>(
+        `${server}/api/crowd`,
+        {
+          route_id: routeId,
+          level,
+        }
+      );
+
+      setCrowd(res.crowd);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <ScrollView
+      contentContainerStyle={{
+        padding: 16,
+        gap: 12,
+        paddingBottom: 40,
+      }}
+    >
+      <View>
+        <Text style={s.h2}>Live crowd conditions</Text>
+        <Text style={s.muted}>
+          Update walking routes as conditions change. Plan B can use this
+          when choosing the best route.
+        </Text>
+      </View>
+
+      {Object.entries(crowd).map(([routeId, state]) => (
+        <View key={routeId} style={[s.card, { gap: 10 }]}>
+          <View style={s.row}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardTitle}>
+                {ROUTE_NAMES[routeId] ?? routeId}
+              </Text>
+              <Text style={s.muted}>
+                Current: {CROWD_LABELS[state.level]}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 6,
+            }}
+          >
+            {(["low", "moderate", "heavy", "closed"] as CrowdLevel[]).map(
+              (level) => (
+                <Pressable
+                  key={level}
+                  disabled={busy === routeId}
+                  onPress={() => update(routeId, level)}
+                  style={[
+                    s.tag,
+                    {
+                      paddingHorizontal: 10,
+                      paddingVertical: 8,
+                      backgroundColor:
+                        state.level === level ? C.text : C.bg,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      fontWeight: "700",
+                      color: state.level === level ? "#fff" : C.text,
+                    }}
+                  >
+                    {CROWD_LABELS[level]}
+                  </Text>
+                </Pressable>
+              )
+            )}
+          </View>
+
+          <Text style={s.tiny}>
+            Updated{" "}
+            {new Date(state.updated_at).toLocaleTimeString("en-AU", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })}
+          </Text>
+        </View>
+      ))}
+
+      {error ? <Text style={s.redBox}>{error}</Text> : null}
     </ScrollView>
   );
 }

@@ -59,7 +59,92 @@ type Bundle = {
   map?: MapData;
   closed?: Record<string, { gates: string[]; places: string[]; storm: boolean }>;
 };
+
+type CrowdLevel = "low" | "moderate" | "heavy" | "closed";
+
+type CrowdState = Record<
+  string,
+  {
+    level: CrowdLevel;
+    updated_at: string;
+  }
+>;
+
+const CROWD_LABELS: Record<CrowdLevel, string> = {
+  low: "🟢 Low",
+  moderate: "🟡 Moderate",
+  heavy: "🔴 Heavy",
+  closed: "⛔ Closed",
+};
+
+const CROWD_COST: Record<CrowdLevel, number> = {
+  low: 0,
+  moderate: 4,
+  heavy: 12,
+  closed: 9999,
+};
+
+function crowdAwarePlan(
+  plan: Plan,
+  crowd: CrowdState,
+  walking: Bundle["walking"],
+  currentZone: string
+) {
+  const steps: Step[] = [plan, ...plan.alternatives];
+
+  const ranked = steps
+    .map((st, index) => {
+      const level = crowd[st.route_id]?.level ?? "low";
+      const route = walking?.routes[st.route_id];
+
+      const startsHere =
+        !route ||
+        route.from.includes(currentZone) ||
+        (currentZone === "river_stage" &&
+          route.from.includes("accessible_platform"));
+
+      return {
+        st,
+        index,
+        level,
+        startsHere,
+        score: index * 3 + CROWD_COST[level],
+      };
+    })
+    .filter((x) => x.level !== "closed" && x.startsHere)
+    .sort((a, b) => a.score - b.score);
+
+  const best = ranked[0];
+
+  if (!best || best.index === 0) {
+    return {
+      plan,
+      changed: false,
+      fromRoute: null as string | null,
+    };
+  }
+
+  const rest = steps.filter((_, index) => index !== best.index);
+
+  return {
+    plan: {
+      ...plan,
+      ...best.st,
+      alternatives: rest,
+    },
+    changed: true,
+    fromRoute: plan.route_id,
+  };
+}
+
 type Strings = ReturnType<typeof strings>;
+
+
+const CURRENT_ZONES = [
+  { id: "river_stage", label: "River Stage" },
+  { id: "lawn_stage", label: "Lawn Stage" },
+  { id: "tent_stage", label: "Tent Stage" },
+] as const;
 
 const HEROES = [
   { id: "mei_19", name: "Mei", desc: "19 · reads Mandarin · train home" },
@@ -136,6 +221,8 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
 function PersonApp({ server, personId, onSwitch }: { server: string; personId: string; onSwitch: () => void }) {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [trigger, setTrigger] = useState<Trigger | null>(null);
+  const [crowd, setCrowd] = useState<CrowdState>({});
+  const [currentZone, setCurrentZone] = useState<string>("");
   const [online, setOnline] = useState(true);
   const [view, setView] = useState<"home" | "plan">("home");
   const [error, setError] = useState("");
@@ -147,6 +234,11 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
       const b = await getJSON<Bundle>(`${server}/api/bundle/${personId}`, 5000);
       await store.set(`planb:bundle:${personId}`, b);
       setBundle(b);
+
+      setCurrentZone((existing) =>
+        existing || b.profile.location_at_end || "river_stage"
+      );
+
       setError("");
     } catch {
       const saved = await store.get<Bundle>(`planb:bundle:${personId}`);
@@ -156,8 +248,23 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
 
   useEffect(() => {
     (async () => {
-      const [saved, t] = await Promise.all([store.get<Bundle>(`planb:bundle:${personId}`), store.get<Trigger>("planb:trigger")]);
-      if (saved) setBundle(saved);
+      const [saved, t, savedCrowd, savedZone] = await Promise.all([
+        store.get<Bundle>(`planb:bundle:${personId}`),
+        store.get<Trigger>("planb:trigger"),
+        store.get<CrowdState>("planb:crowd"),
+        store.get<string>(`planb:zone:${personId}`),
+      ]);
+
+      if (saved) {
+        setBundle(saved);
+        setCurrentZone(
+          savedZone ||
+          saved.profile.location_at_end ||
+          "river_stage"
+        );
+      }
+
+      if (savedCrowd) setCrowd(savedCrowd);
       if (t) { setTrigger(t); lastRaw.current = t.raw; }
       refreshBundle();
     })();
@@ -170,8 +277,18 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
     if (!bundle) return;
     const poll = async () => {
       try {
-        const { trigger: raw } = await getJSON<{ trigger: string | null }>(`${server}/api/trigger`, 2500);
+        const { trigger: raw, crowd: liveCrowd } = await getJSON<{
+          trigger: string | null;
+          crowd: CrowdState;
+        }>(`${server}/api/trigger`, 2500);
+
         setOnline(true);
+
+        if (liveCrowd) {
+          setCrowd(liveCrowd);
+          store.set("planb:crowd", liveCrowd);
+        }
+
         if (!raw || raw === lastRaw.current) return;
         const t = verifyTrigger(raw, bundle.public_key);
         if (!t) return; // forged or corrupted: ignore
@@ -192,8 +309,26 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
     if (!bundle) return null;
     const code = trigger?.code ?? "NORMAL";
     const { key, exact } = pickCachedScenario(code, Object.keys(bundle.plans));
-    return { plan: bundle.plans[key] ?? bundle.plans.NORMAL, key, exact: exact || code === "NORMAL", isPlanB: code !== "NORMAL" };
-  }, [bundle, trigger]);
+    const basePlan = bundle.plans[key] ?? bundle.plans.NORMAL;
+
+    if (!basePlan) return null;
+
+    const crowdResult = crowdAwarePlan(
+      basePlan,
+      crowd,
+      bundle.walking,
+      currentZone || bundle.profile.location_at_end
+    );
+
+    return {
+      plan: crowdResult.plan,
+      key,
+      exact: exact || code === "NORMAL",
+      isPlanB: code !== "NORMAL",
+      crowdChanged: crowdResult.changed,
+      crowdFromRoute: crowdResult.fromRoute,
+    };
+  }, [bundle, trigger, crowd, currentZone]);
 
   if (!bundle || !current?.plan)
     return (
@@ -205,7 +340,26 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
 
   const t = strings(bundle.profile.lang);
   const name = (id: string | null) => (id ? bundle.names[id] ?? id : "");
-  const props = { bundle, plan: current.plan, scenarioKey: current.key, isPlanB: current.isPlanB, exact: current.exact, trigger, online, t, name, server };
+  const props = {
+    bundle,
+    plan: current.plan,
+    scenarioKey: current.key,
+    isPlanB: current.isPlanB,
+    exact: current.exact,
+    trigger,
+    online,
+    t,
+    name,
+    server,
+    crowd,
+    crowdChanged: current.crowdChanged,
+    crowdFromRoute: current.crowdFromRoute,
+    currentZone,
+    onZoneChange: (zone: string) => {
+      setCurrentZone(zone);
+      store.set(`planb:zone:${personId}`, zone);
+    },
+  };
 
   return view === "home"
     ? <HomeScreen {...props} onOpen={() => setView("plan")} onSwitch={onSwitch} />
@@ -214,7 +368,14 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
 
 type ScreenProps = {
   bundle: Bundle; plan: Plan; scenarioKey: string; isPlanB: boolean; exact: boolean; trigger: Trigger | null; online: boolean;
-  t: Strings; name: (id: string | null) => string; server: string;
+  t: Strings;
+  name: (id: string | null) => string;
+  server: string;
+  crowd: CrowdState;
+  crowdChanged: boolean;
+  crowdFromRoute: string | null;
+  currentZone: string;
+  onZoneChange: (zone: string) => void;
 };
 
 function RouteMap({ bundle, st, scenarioKey }: { bundle: Bundle; st: Step; scenarioKey: string }) {
@@ -240,7 +401,21 @@ function transportLine(st: Step, t: Strings, name: (id: string | null) => string
 }
 
 // ---------- HOME: calm overview, plan one tap away ----------
-function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, name, server, onOpen, onSwitch }: ScreenProps & { onOpen: () => void; onSwitch: () => void }) {
+function HomeScreen({
+  bundle,
+  plan,
+  scenarioKey,
+  isPlanB,
+  trigger,
+  online,
+  t,
+  name,
+  server,
+  currentZone,
+  onZoneChange,
+  onOpen,
+  onSwitch,
+}: ScreenProps & { onOpen: () => void; onSwitch: () => void }) {
   return (
     <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 32 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
@@ -266,6 +441,55 @@ function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, na
           <Text style={s.muted}>{t.allNormalSub}</Text>
         </View>
       )}
+
+
+      {/* Current location */}
+      <View style={[s.card, { gap: 10 }]}>
+        <Text style={s.sectionLabel}>Where are you now?</Text>
+
+        <Text style={s.muted}>
+          Update this if you moved to another stage. Your walking route will
+          adjust from here.
+        </Text>
+
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          {CURRENT_ZONES.map((zone) => {
+            const active = currentZone === zone.id;
+
+            return (
+              <Pressable
+                key={zone.id}
+                onPress={() => onZoneChange(zone.id)}
+                style={[
+                  s.tag,
+                  {
+                    paddingHorizontal: 12,
+                    paddingVertical: 9,
+                    backgroundColor: active ? C.text : C.bg,
+                    borderWidth: 1,
+                    borderColor: active ? C.text : C.line,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: active ? "#fff" : C.text,
+                    fontWeight: "700",
+                  }}
+                >
+                  {zone.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {/* Way home */}
       <Pressable onPress={onOpen} style={({ pressed }) => [s.card, pressed && s.pressed]}>
@@ -304,7 +528,22 @@ function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, na
 }
 
 // ---------- PLAN: one action, key details, why, "doesn't work for me" ----------
-function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, t, name, onBack }: ScreenProps & { onBack: () => void }) {
+function PlanScreen({
+  bundle,
+  plan,
+  scenarioKey,
+  isPlanB,
+  exact,
+  trigger,
+  online,
+  t,
+  name,
+  crowd,
+  crowdChanged,
+  crowdFromRoute,
+  currentZone,
+  onBack,
+}: ScreenProps & { onBack: () => void }) {
   const [step, setStep] = useState(0);
   const steps: Step[] = [plan, ...plan.alternatives];
   const escalating = step >= steps.length;
@@ -363,7 +602,18 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
   bundle={bundle}
   st={st}
   name={name}
+  crowd={crowd}
+  currentZone={currentZone}
 />
+
+            {crowdChanged && crowdFromRoute && (
+              <Text style={s.noteBox}>
+                ↪ Route updated: {name(crowdFromRoute)} is currently{" "}
+                {CROWD_LABELS[crowd[crowdFromRoute]?.level ?? "low"]}.
+                {" "}Plan B switched you to {name(st.route_id)}, which is{" "}
+                {CROWD_LABELS[crowd[st.route_id]?.level ?? "low"]}.
+              </Text>
+            )}
 
 <RouteMap
   bundle={bundle}
@@ -424,10 +674,14 @@ function WalkingCard({
   bundle,
   st,
   name,
+  crowd,
+  currentZone,
 }: {
   bundle: Bundle;
   st: Step;
   name: (id: string | null) => string;
+  crowd: CrowdState;
+  currentZone: string;
 }) {
   const route = bundle.walking?.routes[st.route_id];
 
@@ -441,6 +695,7 @@ function WalkingCard({
 
   if (!route) return null;
 
+  const crowdLevel = crowd[st.route_id]?.level ?? "low";
   const totalWalk = route.walk_min + (connection?.walk_min ?? 0);
 
   return (
@@ -451,17 +706,21 @@ function WalkingCard({
         🚶 {totalWalk} min walk
       </Text>
 
+      <Text style={s.body}>
+        Live crowd: {CROWD_LABELS[crowdLevel]}
+      </Text>
+
       <Text style={s.cardTitle}>
         Walk to {name(st.gate_id)}
       </Text>
 
       <Text style={s.body}>
-        From {name(bundle.profile.location_at_end)}, follow {route.name}.
+        From {name(currentZone)}, follow {route.name}.
         Then continue to {name(destination)}.
       </Text>
 
       <Text style={s.muted}>
-        {name(bundle.profile.location_at_end)}
+        {name(currentZone)}
         {" → "}
         {name(st.gate_id)}
         {" → "}
