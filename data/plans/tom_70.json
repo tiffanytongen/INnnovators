@@ -1,11 +1,11 @@
 {
   "person_id": "tom_70",
-  "updated_at": "2026-10-07T09:35:26.248Z",
+  "updated_at": "2026-10-07T13:38:25.713Z",
   "plans": {
     "NORMAL": {
       "person_id": "tom_70",
       "scenario": "NORMAL",
-      "action": "Leave now via Gate A for your 22:45 accessible shuttle.",
+      "action": "Leave at 22:30 via Gate A, step-free riverside path, to your 22:45 shuttle.",
       "gate_id": "gate_A",
       "route_id": "route_A_open",
       "transport": {
@@ -19,9 +19,9 @@
       "wait_at": null,
       "wait_until": null,
       "volunteer_escort": true,
-      "reason": "Your seat on the 22:45 accessible shuttle is held, so we keep it. The path is step-free but open and busy, so move off by 22:33 and a volunteer will walk with you through the crowd.",
-      "text_localised": "Leave now via Gate A for your 22:45 accessible shuttle.",
-      "reason_localised": "Your seat is booked on the 22:45. Step-free but busy path, so go by 22:33 with a volunteer.",
+      "reason": "This keeps your booked 22:45 accessible shuttle seat. The path is step-free but open-air, so leave at 22:30; a volunteer will walk with you through the crowd.",
+      "text_localised": "Leave at 22:30 via Gate A, step-free riverside path, to your 22:45 shuttle.",
+      "reason_localised": "Keeps your booked 22:45 seat. Path is step-free but not covered, so go now with a volunteer.",
       "alternatives": [
         {
           "action": "Take the covered ramp to Gate D and the 23:20 accessible shuttle.",
@@ -38,14 +38,14 @@
           "wait_at": "accessible_platform",
           "wait_until": "23:01",
           "volunteer_escort": true,
-          "reason": "Calmest option: stay on the covered platform while the crowd clears, then a fully covered step-free ramp to the 23:20 backup shuttle.",
-          "text_localised": "Wait on the covered platform, then take the ramp to Gate D for the 23:20 shuttle.",
-          "reason_localised": "Lets the crowd pass. The whole route is covered and step-free.",
+          "reason": "Fully covered and step-free, and you can stay on the covered platform until the surge passes; you lose your 22:45 seat.",
+          "text_localised": "Stay on the platform, then take the covered ramp to Gate D for the 23:20 shuttle.",
+          "reason_localised": "Covered and step-free, and you avoid the crowd. You give up the 22:45 shuttle.",
           "notify_contact": false,
           "arrive": "22:47"
         },
         {
-          "action": "Take the covered ramp to Gate D and an accessible taxi from 22:50.",
+          "action": "Take the covered ramp to Gate D and an accessible taxi at 22:50.",
           "gate_id": "gate_D",
           "route_id": "ramp_path_D",
           "transport": {
@@ -59,14 +59,14 @@
           "wait_at": null,
           "wait_until": null,
           "volunteer_escort": true,
-          "reason": "If you miss the 22:45 shuttle, this is the quickest covered, step-free way out, with the rank 2 minutes from the gate.",
-          "text_localised": "Go via the covered ramp to Gate D and take an accessible taxi from 22:50.",
-          "reason_localised": "Covered and step-free the whole way, and no long wait.",
+          "reason": "Covered, step-free the whole way and leaves about the same time, but a taxi costs more than your booked shuttle.",
+          "text_localised": "Go now via the covered ramp to Gate D; accessible taxis from 22:50.",
+          "reason_localised": "Covered and step-free all the way, similar time, but you pay for the taxi.",
           "notify_contact": false,
           "arrive": "22:44"
         },
         {
-          "action": "Take the covered ramp to Gate D and an accessible taxi from 23:30.",
+          "action": "Take the covered ramp to Gate D and an accessible taxi at 23:30.",
           "gate_id": "gate_D",
           "route_id": "ramp_path_D",
           "transport": {
@@ -80,9 +80,9 @@
           "wait_at": "accessible_platform",
           "wait_until": "23:14",
           "volunteer_escort": true,
-          "reason": "Latest, quietest option if you would rather not rush at all; all waiting is under cover.",
-          "text_localised": "Rest on the covered platform, then take the ramp to Gate D for a taxi from 23:30.",
-          "reason_localised": "No rush, and you stay under cover the whole time.",
+          "reason": "The calmest option: wait in the covered platform, then a short covered ramp. Latest wait is 23:14.",
+          "text_localised": "Wait on the covered platform until 23:14, then covered ramp to Gate D taxis at 23:30.",
+          "reason_localised": "Quietest option, fully covered, but you get home later.",
           "notify_contact": false,
           "arrive": "22:44"
         }
@@ -100,7 +100,7 @@
     "STORM": {
       "person_id": "tom_70",
       "scenario": "STORM",
-      "action": "Leave now via Gate D on the covered ramp path, then take the 22:50 accessible taxi.",
+      "action": "Leave now via Gate D on the covered ramp, then take the accessible taxi at 22:50.",
       "gate_id": "gate_D",
       "route_id": "ramp_path_D",
       "transport": {
@@ -114,33 +114,12 @@
       "wait_at": null,
       "wait_until": null,
       "volunteer_escort": true,
-      "reason": "Your 22:45 accessible shuttle is not running in the storm. The 22:50 accessible taxi puts you in a vehicle before the 23:00 storm, all covered and step-free. A volunteer will meet you.",
-      "text_localised": "Leave now via Gate D on the covered ramp path, then take the 22:50 accessible taxi.",
-      "reason_localised": "Your booked 22:45 shuttle is cancelled by the storm. This taxi gets you away before 23:00, fully covered and step-free. A volunteer will meet you.",
+      "reason": "Your 22:45 accessible shuttle can't run in the storm, so we've moved you to the 22:50 accessible taxi — the rank is covered and 2 minutes from Gate D. A volunteer will meet you.",
+      "text_localised": "Leave now via Gate D on the covered ramp, then take the accessible taxi at 22:50.",
+      "reason_localised": "Your booked 22:45 shuttle is cancelled by the storm. The taxi rank is covered, step-free, and you'll be away before 23:00.",
       "alternatives": [
         {
-          "action": "Go to Gate D, wait in the covered shelter, take the 23:30 accessible taxi.",
-          "gate_id": "gate_D",
-          "route_id": "ramp_path_D",
-          "transport": {
-            "mode": "taxi",
-            "ref_id": "acc_taxi_2330",
-            "line": "Accessible taxis from 23:30",
-            "platform": "accessible_taxi_rank",
-            "depart": "23:30"
-          },
-          "group_meetup": null,
-          "wait_at": "info_tent_gate_D",
-          "wait_until": "23:14",
-          "volunteer_escort": true,
-          "reason": "If 22:50 is too soon, move now anyway and wait under cover at the Gate D info tent for the 23:30 taxi.",
-          "text_localised": "Go to Gate D now, wait under cover at the info tent, then take the 23:30 accessible taxi.",
-          "reason_localised": "Slower, but you stay dry and step-free the whole time, and you avoid rushing.",
-          "notify_contact": false,
-          "arrive": "22:44"
-        },
-        {
-          "action": "Go to Gate D and the covered shuttle shelter for the 23:20 accessible shuttle.",
+          "action": "Take the covered ramp to Gate D and wait under the shelter for the 23:20 accessible shuttle.",
           "gate_id": "gate_D",
           "route_id": "ramp_path_D",
           "transport": {
@@ -154,11 +133,32 @@
           "wait_at": "shuttle_stop_batman_ave",
           "wait_until": "23:01",
           "volunteer_escort": true,
-          "reason": "The backup accessible shuttle replaces your booking, but you wait at the stop during the storm, under shelter.",
-          "text_localised": "Take the covered ramp to Gate D, then the shuttle shelter for the 23:20 accessible shuttle.",
-          "reason_localised": "Replaces your booked shuttle, but you wait at the stop while the storm starts.",
+          "reason": "A shuttle seat instead of a taxi, but you wait through the storm in the shelter.",
+          "text_localised": "Take the covered ramp to Gate D and wait under the shelter for the 23:20 accessible shuttle.",
+          "reason_localised": "The shelter is covered, but you wait longer and travel during the storm.",
           "notify_contact": false,
           "arrive": "22:47"
+        },
+        {
+          "action": "Go to Gate D by the covered ramp and take an accessible taxi from 23:30.",
+          "gate_id": "gate_D",
+          "route_id": "ramp_path_D",
+          "transport": {
+            "mode": "taxi",
+            "ref_id": "acc_taxi_2330",
+            "line": "Accessible taxis from 23:30",
+            "platform": "accessible_taxi_rank",
+            "depart": "23:30"
+          },
+          "group_meetup": null,
+          "wait_at": "accessible_taxi_rank",
+          "wait_until": "23:14",
+          "volunteer_escort": true,
+          "reason": "Later taxi if 22:50 is full; the rank is covered, but it means a long wait.",
+          "text_localised": "Go to Gate D by the covered ramp and take an accessible taxi from 23:30.",
+          "reason_localised": "Use this only if the 22:50 taxis are full. The rank is covered and step-free.",
+          "notify_contact": false,
+          "arrive": "22:44"
         }
       ],
       "escalate_text_localised": "Go to the nearest info tent or show this screen to any volunteer.",

@@ -66,14 +66,15 @@ function serviceOptionsFor(p: Profile, w: World): Service[] {
 }
 
 /** Every physically possible way home for this person in this scenario, best first. */
-export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], extraServices: Service[] = []): Option[] {
+/** delayMin: plan for leaving this many minutes after the normal exit time (crowd waves). */
+export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], extraServices: Service[] = [], delayMin = 0): Option[] {
   const parts = typeof scenario === "string" ? parseScenario(scenario) : scenario;
   if (!parts) throw new Error(`Unknown scenario ${scenario}`);
   const w = worldFor(parts, extraServices);
   const closed = new Set(closedPlaces(w));
   const needStepFree = p.access.step_free || p.access.wheelchair;
   const from = p.location_at_end === "accessible_platform" ? ["accessible_platform", "river_stage"] : [p.location_at_end];
-  const leave = leaveTime(p, w);
+  const leave = leaveTime(p, w) + delayMin;
   const out: Option[] = [];
 
   for (const route of site.routes) {

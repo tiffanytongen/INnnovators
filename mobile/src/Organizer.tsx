@@ -24,6 +24,8 @@ type Preview = {
   closed_places: string[];
   storm: boolean;
   gate_delta: Record<string, number>;
+  waited_people: number;
+  gate_load: Record<string, { peak: number; cap: number }>;
 };
 type Premortem = {
   total_people: number;
@@ -161,6 +163,26 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
             <SiteMap map={preview.map} closedGates={preview.closed_gates} closedPlaces={preview.closed_places} storm={preview.storm} gateDelta={preview.gate_delta} />
           </View>
           <Text style={s.tiny}>Red = closed. Yellow = extra people at that gate, so you know where to send staff.</Text>
+          <View style={{ backgroundColor: C.bg, borderRadius: 14, padding: 12, gap: 6 }}>
+            <Text style={s.cardTitle}>🚦 No gate is sent more than it can handle</Text>
+            {preview.waited_people > 0 && (
+              <Text style={s.body}>
+                <Text style={{ fontWeight: "800" }}>{preview.waited_people.toLocaleString()}</Text> people are asked to wait{preview.storm ? " under cover" : ""} and leave in 30-minute waves instead of all at once.
+              </Text>
+            )}
+            {Object.entries(preview.gate_load)
+              .filter(([, l]) => l.cap > 0)
+              .map(([g, l]) => (
+                <View key={g} style={s.row}>
+                  <Text style={[s.body, { width: 64 }]}>Gate {g.replace("gate_", "")}</Text>
+                  <View style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: C.line, overflow: "hidden" }}>
+                    <View style={{ width: `${Math.round((100 * l.peak) / l.cap)}%`, height: 10, backgroundColor: preview.closed_gates.includes(g) ? C.red : l.peak >= l.cap ? C.alert : C.green }} />
+                  </View>
+                  <Text style={[s.muted, { width: 110, textAlign: "right" }]}>{preview.closed_gates.includes(g) ? "closed" : `${l.peak.toLocaleString()} / ${l.cap.toLocaleString()}`}</Text>
+                </View>
+              ))}
+            <Text style={s.tiny}>Busiest 30 minutes at each gate vs its limit.</Text>
+          </View>
           {preview.samples.map((x) => (
             <View key={x.person_id} style={{ backgroundColor: C.bg, borderRadius: 14, padding: 14, gap: 4 }}>
               <Text style={s.muted}>{WHO[x.person_id] ?? x.name}</Text>

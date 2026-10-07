@@ -7,7 +7,7 @@
       "covered": false,
       "step_free": true,
       "accessible": true,
-      "capacity_per_hour": 6000,
+      "capacity_per_hour": 7000,
       "connects_to": [
         {
           "id": "pickup_zone_1",
@@ -26,6 +26,12 @@
           "walk_min": 12,
           "covered": false,
           "step_free": true
+        },
+        {
+          "id": "coach_bays",
+          "walk_min": 12,
+          "covered": false,
+          "step_free": true
         }
       ]
     },
@@ -35,7 +41,7 @@
       "covered": true,
       "step_free": false,
       "accessible": false,
-      "capacity_per_hour": 3000,
+      "capacity_per_hour": 4000,
       "connects_to": [
         {
           "id": "pickup_zone_2",
@@ -48,6 +54,12 @@
           "walk_min": 15,
           "covered": false,
           "step_free": false
+        },
+        {
+          "id": "coach_bays",
+          "walk_min": 13,
+          "covered": false,
+          "step_free": false
         }
       ]
     },
@@ -57,7 +69,7 @@
       "covered": true,
       "step_free": false,
       "accessible": false,
-      "capacity_per_hour": 4000,
+      "capacity_per_hour": 6000,
       "connects_to": [
         {
           "id": "flinders_st",
@@ -71,6 +83,13 @@
           "walk_min": 7,
           "covered": false,
           "step_free": false
+        },
+        {
+          "id": "coach_bays",
+          "walk_min": 7,
+          "covered": true,
+          "step_free": false,
+          "note": "Covered underpass to the Flinders St coach bays"
         }
       ]
     },
@@ -80,7 +99,7 @@
       "covered": true,
       "step_free": true,
       "accessible": true,
-      "capacity_per_hour": 800,
+      "capacity_per_hour": 1200,
       "connects_to": [
         {
           "id": "accessible_taxi_rank",
@@ -324,6 +343,17 @@
       "id": "flinders_st",
       "type": "station",
       "name": "Flinders Street Station"
+    },
+    {
+      "id": "coach_bays",
+      "type": "shuttle_stop",
+      "name": "Coach bays, Flinders St (general shuttles)",
+      "covered": true,
+      "via_gates": [
+        "gate_A",
+        "gate_B",
+        "gate_C"
+      ]
     }
   ],
   "meetup_points": [

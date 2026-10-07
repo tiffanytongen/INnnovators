@@ -1,11 +1,11 @@
 {
   "person_id": "jake_16",
-  "updated_at": "2026-10-07T09:03:17.787Z",
+  "updated_at": "2026-10-07T13:38:53.501Z",
   "plans": {
     "NORMAL": {
       "person_id": "jake_16",
       "scenario": "NORMAL",
-      "action": "Leave now via Gate A and walk to Pickup Zone 1, where your parent is waiting.",
+      "action": "Leave at 22:30 via Gate A, riverside path, to Pickup Zone 1.",
       "gate_id": "gate_A",
       "route_id": "route_A_open",
       "transport": {
@@ -19,12 +19,12 @@
       "wait_at": null,
       "wait_until": null,
       "volunteer_escort": false,
-      "reason": "Your parent is already booked at Pickup Zone 1, so we keep it. The riverside path is busy after the headliner, but it's the shortest and keeps your plan unchanged.",
-      "text_localised": "Leave now via Gate A and walk to Pickup Zone 1, where your parent is waiting.",
-      "reason_localised": "Your parent is waiting at Pickup Zone 1, so keep that plan. Gate A is the shortest way, about 9 minutes. Be there by 23:00.",
+      "reason": "Your parent is already waiting at Pickup Zone 1, so we keep it. The path is open-air but short and step-free, arriving about 22:39.",
+      "text_localised": "Leave at 22:30 via Gate A, riverside path, to Pickup Zone 1.",
+      "reason_localised": "Your parent is waiting at Pickup Zone 1. Short step-free walk, you arrive about 22:39. Wave to staff if unsure.",
       "alternatives": [
         {
-          "action": "Take the canopy walk to Gate B and wait at covered Pickup Zone 2.",
+          "action": "Take the covered canopy walk to Gate B and wait at Pickup Zone 2.",
           "gate_id": "gate_B",
           "route_id": "route_B_canopy",
           "transport": {
@@ -37,15 +37,15 @@
           "group_meetup": null,
           "wait_at": null,
           "wait_until": null,
-          "volunteer_escort": false,
-          "reason": "Quieter and covered the whole way, with staff at the zone; the pickup point changes, but Fieldday texts your parent automatically.",
-          "text_localised": "Take the canopy walk to Gate B and wait at covered Pickup Zone 2.",
-          "reason_localised": "Quieter, covered, and staffed. Your parent is sent the new pickup point by text automatically.",
+          "volunteer_escort": true,
+          "reason": "Covered and staffed pickup point if Gate A feels too crowded; Fieldday texts your parent the new zone automatically.",
+          "text_localised": "Take the covered canopy walk to Gate B and wait at Pickup Zone 2.",
+          "reason_localised": "Covered, staffed waiting spot. Your parent has been sent the new pickup point by SMS. Arrive about 22:43.",
           "notify_contact": true,
           "arrive": "22:43"
         },
         {
-          "action": "Walk the lawn path to Gate B and wait at Pickup Zone 2.",
+          "action": "Go out Gate B by the lawn path to Pickup Zone 2.",
           "gate_id": "gate_B",
           "route_id": "route_B_lawn",
           "transport": {
@@ -58,33 +58,33 @@
           "group_meetup": null,
           "wait_at": null,
           "wait_until": null,
-          "volunteer_escort": false,
-          "reason": "Fastest way off the lawn away from the main surge; has steps and is open to the sky, but the pickup zone is covered and staffed.",
-          "text_localised": "Walk the lawn path to Gate B and wait at Pickup Zone 2.",
-          "reason_localised": "Fast and away from the big crowd. Some steps. Your parent gets the new pickup point by text.",
+          "volunteer_escort": true,
+          "reason": "Fastest way to the staffed Pickup Zone 2, but the path is open-air and has steps.",
+          "text_localised": "Go out Gate B by the lawn path to Pickup Zone 2.",
+          "reason_localised": "Quickest route to staffed Pickup Zone 2, arrive about 22:41. Has steps. Your parent is sent the new point.",
           "notify_contact": true,
           "arrive": "22:41"
         },
         {
-          "action": "Take the covered ramp path to Gate D and wait at Pickup Zone 3.",
-          "gate_id": "gate_D",
-          "route_id": "ramp_path_D",
+          "action": "Use the covered path to Gate C, then walk to Pickup Zone 2.",
+          "gate_id": "gate_C",
+          "route_id": "covered_path_2",
           "transport": {
             "mode": "pickup",
-            "ref_id": "pickup_zone_3",
+            "ref_id": "pickup_zone_2",
             "line": "parent pickup",
-            "platform": "pickup_zone_3",
+            "platform": "pickup_zone_2",
             "depart": null
           },
           "group_meetup": null,
           "wait_at": null,
           "wait_until": null,
-          "volunteer_escort": false,
-          "reason": "Calmest, fully covered and staffed option if Gate A feels too crowded; longer walk and the pickup point changes.",
-          "text_localised": "Take the covered ramp path to Gate D and wait at Pickup Zone 3.",
-          "reason_localised": "Calmest and fully covered, but a longer walk. Your parent is sent the new pickup point.",
+          "volunteer_escort": true,
+          "reason": "Quieter covered route out if Gates A and B are packed; longer walk, arriving about 22:47.",
+          "text_localised": "Use the covered path to Gate C, then walk to Pickup Zone 2.",
+          "reason_localised": "Quieter, covered exit. Longer walk, arrive about 22:47. Your parent is sent the new pickup point.",
           "notify_contact": true,
-          "arrive": "22:46"
+          "arrive": "22:47"
         }
       ],
       "escalate_text_localised": "Go to the nearest info tent or show this screen to any volunteer.",
@@ -114,9 +114,9 @@
       "wait_at": null,
       "wait_until": null,
       "volunteer_escort": true,
-      "reason": "Pickup Zone 1 is closed for the storm. Your parent has been sent the new pickup point automatically. Zone 2 is covered and staffed, and you arrive about 22:43, before 23:00.",
-      "text_localised": "Leave now via Gate B on the covered canopy walk to Pickup Zone 2.",
-      "reason_localised": "Zone 1 is closed in the storm. Your parent has been texted the new spot. You arrive about 22:43, under cover. Staff there can help.",
+      "reason": "Pickup Zone 1 is closed for the storm, so your pickup moves to covered, staffed Pickup Zone 2. Your parent has been sent the new point automatically. Leave at 22:30 to be under cover before 23:00.",
+      "text_localised": "Leave now via Gate B, covered canopy walk, to Pickup Zone 2. A volunteer will meet you there.",
+      "reason_localised": "Pickup Zone 1 is closed in the storm. Your parent has already been sent the new pickup point. Be under cover before 23:00.",
       "alternatives": [
         {
           "action": "Take the covered ramp path to Gate D and wait at Pickup Zone 3.",
@@ -133,9 +133,9 @@
           "wait_at": null,
           "wait_until": null,
           "volunteer_escort": true,
-          "reason": "Also covered and staffed, with no steps, but a bit longer (arrive about 22:46) and further from the Lawn Stage.",
-          "text_localised": "Take the covered ramp path to Gate D and wait at Pickup Zone 3.",
-          "reason_localised": "Also covered and staffed, no steps. Slightly longer walk, arrive about 22:46. Your parent is told automatically.",
+          "reason": "Slightly longer walk (arrive 22:46) but fully covered, step-free and staffed if Gate B is too crowded.",
+          "text_localised": "Walk the covered ramp path to Gate D, then wait at Pickup Zone 3. Staff are there.",
+          "reason_localised": "A bit longer, arriving 22:46, but covered the whole way. Your parent gets the new point by SMS.",
           "notify_contact": true,
           "arrive": "22:46"
         }
@@ -153,9 +153,9 @@
     "GATE_A": {
       "person_id": "jake_16",
       "scenario": "GATE_A",
-      "action": "Leave now via Gate B and wait at Pickup Zone 2 for your parent.",
-      "gate_id": "gate_B",
-      "route_id": "route_B_lawn",
+      "action": "Leave now via Gate C and walk to Pickup Zone 2.",
+      "gate_id": "gate_C",
+      "route_id": "route_C_open",
       "transport": {
         "mode": "pickup",
         "ref_id": "pickup_zone_2",
@@ -167,33 +167,12 @@
       "wait_at": null,
       "wait_until": null,
       "volunteer_escort": true,
-      "reason": "Gate A and Pickup Zone 1 are closed, so pickup moves to Pickup Zone 2 — Fieldday has already texted your parent. This is the shortest walk; it is staffed and covered, and a volunteer will meet you.",
-      "text_localised": "Leave now via Gate B (Lawn path, 9 min) and wait at Pickup Zone 2 for your parent.",
-      "reason_localised": "Gate A and Pickup Zone 1 are closed. Your parent has been sent the new pickup point. Zone 2 is covered and staffed; a volunteer will meet you.",
+      "reason": "Gate A and Pickup Zone 1 are closed, and nearer Gate B is full, so you're sent via Gate C. Your parent has been texted the new pickup point, Zone 2, which is covered and staffed. A volunteer will walk with you.",
+      "text_localised": "Leave now via Gate C, then walk 7 minutes to Pickup Zone 2. A volunteer can walk with you.",
+      "reason_localised": "Gate A and Pickup Zone 1 are closed and Gate B is full. Your parent has been sent the new pickup point, Zone 2. Arrive about 22:45.",
       "alternatives": [
         {
-          "action": "Take the covered canopy walk to Gate B, then Pickup Zone 2.",
-          "gate_id": "gate_B",
-          "route_id": "route_B_canopy",
-          "transport": {
-            "mode": "pickup",
-            "ref_id": "pickup_zone_2",
-            "line": "parent pickup",
-            "platform": "pickup_zone_2",
-            "depart": null
-          },
-          "group_meetup": null,
-          "wait_at": null,
-          "wait_until": null,
-          "volunteer_escort": true,
-          "reason": "Two minutes longer but covered the whole way if it rains or the lawn path is crowded.",
-          "text_localised": "Take the canopy walk past the food trucks to Gate B, then Pickup Zone 2.",
-          "reason_localised": "Slightly longer but covered all the way. Your parent already has the new pickup point.",
-          "notify_contact": true,
-          "arrive": "22:43"
-        },
-        {
-          "action": "Go out Gate C on the covered path, then walk to Pickup Zone 2.",
+          "action": "Take the covered path to Gate C, then Pickup Zone 2.",
           "gate_id": "gate_C",
           "route_id": "covered_path_2",
           "transport": {
@@ -207,14 +186,35 @@
           "wait_at": null,
           "wait_until": null,
           "volunteer_escort": true,
-          "reason": "Use if Gate B is too busy; there is an info tent at Gate C, but the last 7 minutes are uncovered.",
-          "text_localised": "If Gate B is too crowded, use the covered path to Gate C, then walk 7 min to Pickup Zone 2.",
-          "reason_localised": "Info tent at Gate C can help you. Last part of the walk is not covered.",
+          "reason": "Same gate and same pickup point, but a covered path if it starts raining; about two minutes slower.",
+          "text_localised": "Take the covered path along the Tent Stage to Gate C, then walk to Pickup Zone 2.",
+          "reason_localised": "Covered the whole way to the gate. Arrive about 22:47. Your parent knows the new pickup point.",
           "notify_contact": true,
           "arrive": "22:47"
         },
         {
-          "action": "Use Gate D's ramp path and meet your parent at Pickup Zone 3.",
+          "action": "Use the canopy walk to Gate B, then Pickup Zone 2.",
+          "gate_id": "gate_B",
+          "route_id": "route_B_canopy",
+          "transport": {
+            "mode": "pickup",
+            "ref_id": "pickup_zone_2",
+            "line": "parent pickup",
+            "platform": "pickup_zone_2",
+            "depart": null
+          },
+          "group_meetup": null,
+          "wait_at": null,
+          "wait_until": null,
+          "volunteer_escort": true,
+          "reason": "Shortest covered walk to the same pickup point, but Gate B is crowded — only use it if staff let you through.",
+          "text_localised": "Walk the canopy path to Gate B, then 2 minutes to Pickup Zone 2.",
+          "reason_localised": "Covered and close to the pickup point, but Gate B is busy. Arrive about 22:43.",
+          "notify_contact": true,
+          "arrive": "22:43"
+        },
+        {
+          "action": "Go via Gate D to Pickup Zone 3.",
           "gate_id": "gate_D",
           "route_id": "ramp_path_D",
           "transport": {
@@ -228,9 +228,9 @@
           "wait_at": null,
           "wait_until": null,
           "volunteer_escort": true,
-          "reason": "Quietest, fully covered and staffed route if the other gates feel overwhelming; longer walk.",
-          "text_localised": "Walk the covered ramp path to Gate D and wait at Pickup Zone 3.",
-          "reason_localised": "Quiet, covered and staffed. Longer walk, and your parent must be sent to Zone 3 instead.",
+          "reason": "Quietest, fully covered route if the crowd feels too much, but a different pickup zone for your parent.",
+          "text_localised": "Take the covered ramp path to Gate D, then wait at Pickup Zone 3.",
+          "reason_localised": "Quiet, covered and step-free. Your parent would be sent Zone 3 instead. Arrive about 22:46.",
           "notify_contact": true,
           "arrive": "22:46"
         }
@@ -240,7 +240,7 @@
       "needs_human": false,
       "needs_human_reason": null,
       "notify_contact": true,
-      "arrive": "22:41",
+      "arrive": "22:45",
       "source": "Fieldday Ops · EMP s5.1 Gate closure (MOCK)",
       "lang": "en",
       "generated_by": "claude-opus-5"

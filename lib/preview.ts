@@ -1,20 +1,24 @@
 // What staff see before approving: who's affected, sample messages, simulated SMS, human-only flags.
 import { loadProfiles, nameOf, type Profile } from "./data";
-import { feasibleOptions, worldFor, closedPlaces } from "./options";
+import { worldFor, closedPlaces } from "./options";
+import { allocate } from "./allocate";
 import { mapPayload } from "./map";
 import { parseScenario, pickCachedScenario, partToCode, describePart } from "./scenario";
 import { readPlanFile } from "./generate";
-import { runScenario, readFixes } from "./premortem";
+import { readFixes } from "./premortem";
 import type { Plan } from "./plan";
 
-const sameExit = (a?: { gate_id: string; route_id: string; transport: { ref_id: string; depart: string | null } }, b?: typeof a) =>
-  !!a && !!b && a.gate_id === b.gate_id && a.route_id === b.route_id && a.transport.ref_id === b.transport.ref_id && a.transport.depart === b.transport.depart;
-
-function isAffected(p: Profile, code: string) {
-  const before = feasibleOptions(p, "NORMAL")[0];
-  const after = feasibleOptions(p, code)[0];
-  return !sameExit(before, after);
-}
+// What each person is told = their first allocated chunk (gate, transport, wave). Compare scenario vs normal night.
+type Alloc = ReturnType<typeof allocate>;
+const told = (al: Alloc, id: string) => {
+  const c = al.byPerson[id]?.[0];
+  return c ? `${c.option.gate_id}|${c.option.route_id}|${c.option.transport.ref_id}|${c.option.transport.depart}|${c.delay}` : "none";
+};
+const peopleByGate = (al: Alloc) => {
+  const g: Record<string, number> = {};
+  for (const chunks of Object.values(al.byPerson)) for (const c of chunks) g[c.option.gate_id] = (g[c.option.gate_id] ?? 0) + c.people;
+  return g;
+};
 
 export function planFor(personId: string, code: string): { plan: Plan | null; key: string; exact: boolean } {
   const file = readPlanFile(personId);
@@ -34,20 +38,21 @@ export function buildPreview(code: string) {
   const profiles = loadProfiles();
   const total = profiles.reduce((s, p) => s + p.weight, 0);
 
-  const affected = profiles.filter((p) => isAffected(p, code));
-  // Where people leave from, before vs after (rule-ranked first choice), for the map.
+  const fixes = readFixes();
+  const normal = allocate("NORMAL", profiles, fixes);
+  const now = allocate(code, profiles, fixes);
+  const affected = profiles.filter((p) => told(normal, p.id) !== told(now, p.id));
+  // Net people gained/lost per gate vs a normal night, for the map badges.
+  const before = peopleByGate(normal), after = peopleByGate(now);
   const gateDelta: Record<string, number> = {};
-  for (const p of profiles) {
-    const before = feasibleOptions(p, "NORMAL")[0]?.gate_id;
-    const after = feasibleOptions(p, code)[0]?.gate_id;
-    if (before === after) continue;
-    if (before) gateDelta[before] = (gateDelta[before] ?? 0) - p.weight;
-    if (after) gateDelta[after] = (gateDelta[after] ?? 0) + p.weight;
-  }
+  for (const g of new Set([...Object.keys(before), ...Object.keys(after)])) gateDelta[g] = (after[g] ?? 0) - (before[g] ?? 0);
+  // Busiest 30-minute wave per gate vs its limit: the allocator never lets this go over.
+  const gateLoad = Object.fromEntries(Object.entries(now.gateLoad).map(([g, waves]) => [g, { peak: Math.max(...waves), cap: now.gateCap[g] }]));
   const w = worldFor(parts);
   const byPart = parts.map((part) => {
     const c = partToCode(part);
-    return { code: c, label: describePart(part), people: profiles.filter((p) => isAffected(p, c)).reduce((s, p) => s + p.weight, 0) };
+    const single = allocate(c, profiles, fixes);
+    return { code: c, label: describePart(part), people: profiles.filter((p) => told(normal, p.id) !== told(single, p.id)).reduce((s, p) => s + p.weight, 0) };
   });
 
   const samples = profiles
@@ -74,7 +79,9 @@ export function buildPreview(code: string) {
     code,
     total_people: total,
     affected_people: affected.reduce((s, p) => s + p.weight, 0),
-    no_plan_people: runScenario(code, profiles, readFixes()).no_plan, // same capacity-aware count as the pre-mortem
+    no_plan_people: now.stuck.reduce((n, x) => n + x.people, 0), // same crowd allocation as the pre-mortem
+    waited_people: now.waited,
+    gate_load: gateLoad,
     by_part: byPart,
     map: mapPayload(),
     closed_gates: [...w.closedGates],

@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { site, placeById, serviceById, scenarios, toTime, type Profile } from "./data";
 import { feasibleOptions, worldFor, closedPlaces, leaveTime, type Option } from "./options";
+import { assignmentFor } from "./allocate";
 import { parseScenario } from "./scenario";
 
 const TransportSchema = z.object({
@@ -90,24 +91,32 @@ function checkStep(step: z.infer<z.ZodObject<typeof Step>>, options: Option[], c
 export function validatePlan(raw: ClaudePlan, profile: Profile, scenario: string, model: string): { plan?: Plan; errors: string[] } {
   const errors: string[] = [];
   const parts = parseScenario(scenario)!;
-  const options = feasibleOptions(profile, parts);
+  const assigned = assignmentFor(profile, scenario); // crowd allocation across everyone
+  const options = assigned ? assigned.options : feasibleOptions(profile, parts);
   const closed = new Set(closedPlaces(worldFor(parts)));
 
   const w = worldFor(parts);
+  const start = toTime(leaveTime(profile, w) + (assigned?.delay ?? 0));
   // Times the text may mention: any real departure among the options, their original booking, leave time, storm time.
   const booked = profile.home.mode === "shuttle" ? serviceById(profile.home.booking)?.depart : undefined;
   const extraTimes = [
     toTime(leaveTime(profile, w)),
+    start,
     ...parts.flatMap((p) => (p.type === "STORM" ? [p.at] : [])),
     ...options.flatMap((o) => [o.transport.depart, o.arrive, o.latest_leave]),
     booked,
   ].filter((t): t is string => !!t);
   const main = checkStep(raw, options, closed, extraTimes, "main plan", errors);
   const alts = raw.alternatives.map((a, i) => ({ a, o: checkStep(a, options, closed, extraTimes, `alternatives[${i}]`, errors) }));
-  // Never break an arrangement someone else relies on (a parent at a pickup zone, a booked seat) while it still works.
-  const committed = profile.home.mode === "shuttle" ? profile.home.booking : profile.home.mode === "pickup" ? profile.home.zone : null;
-  if (committed && options.some((o) => o.transport.ref_id === committed) && raw.transport.ref_id !== committed)
-    errors.push(`main plan: their existing arrangement (${committed}) is still possible in this scenario, so the main plan must use it. Put other options in alternatives.`);
+  // Crowd allocation: the main plan must be the gate/transport/wave this person was given, so no gate is overloaded.
+  // (The allocator already keeps bookings and pickup points wherever there's room.)
+  if (assigned) {
+    const a = assigned.option;
+    if (raw.gate_id !== a.gate_id || raw.transport.ref_id !== a.transport.ref_id || raw.transport.depart !== a.transport.depart)
+      errors.push(`main plan: must be the ASSIGNED option (gate_id=${a.gate_id}, transport.ref_id=${a.transport.ref_id}, depart=${a.transport.depart}). Other gates are full; put other options in alternatives.`);
+    if (assigned.delay > 0 && (!raw.wait_until || raw.wait_until < start || !raw.wait_at))
+      errors.push(`main plan: they are in a later exit wave, so set wait_at (a safe place near them) and wait_until = "${start}".`);
+  }
   if (profile.lang !== "en" && raw.text_localised.trim() === raw.action.trim()) errors.push(`text_localised must be written in language "${profile.lang}", not English.`);
 
   // Human-only zones: never let the AI resolve these on its own.
@@ -117,6 +126,10 @@ export function validatePlan(raw: ClaudePlan, profile: Profile, scenario: string
   if (profile.medical_flag && (heat || parts.some((p) => p.type === "STORM"))) {
     needs_human = true;
     needs_human_reason = needs_human_reason ?? `Medical condition on file (${profile.medical_flag}) — staff to check in.`;
+  }
+  if (!assigned) {
+    needs_human = true;
+    needs_human_reason = needs_human_reason ?? "No gate or seat capacity left for them in this scenario: staff to assist (see pre-mortem).";
   }
   if (errors.length || !main) return { errors };
 
@@ -146,7 +159,9 @@ export function validatePlan(raw: ClaudePlan, profile: Profile, scenario: string
 
 /** Used only when Claude can't produce a valid plan after retries. English, rule-ranked, clearly labelled. */
 export function rulesFallbackPlan(profile: Profile, scenario: string): Plan | null {
-  const options = feasibleOptions(profile, scenario);
+  const assigned = assignmentFor(profile, scenario);
+  const base = assigned ? assigned.options : feasibleOptions(profile, scenario);
+  const options = assigned ? [assigned.option, ...base.filter((o) => o !== assigned.option && !(o.gate_id === assigned.option.gate_id && o.transport.ref_id === assigned.option.transport.ref_id && o.transport.depart === assigned.option.transport.depart))] : base;
   if (!options.length) return null;
   const toStep = (o: Option): PlanStep => ({
     action: `Leave via ${o.gate_id.replace("gate_", "Gate ")}`,

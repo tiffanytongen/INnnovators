@@ -1,5 +1,5 @@
 {
-  "_note": "Fictional Saturday-night departures from Flinders Street (PTV-style). Times are 24h HH:MM; after midnight use 24:xx.",
+  "_note": "Fictional Saturday-night departures from Flinders Street (PTV-style). Times are 24h HH:MM; after midnight use 24:xx. After the regular timetable, Night Network trains run hourly (Saturday).",
   "station_id": "flinders_st",
   "trains": [
     {
@@ -14,7 +14,9 @@
         "23:27",
         "23:47",
         "24:07",
-        "24:37"
+        "24:37",
+        "25:37",
+        "26:37"
       ]
     },
     {
@@ -29,7 +31,9 @@
         "23:24",
         "23:44",
         "24:14",
-        "24:44"
+        "24:44",
+        "25:44",
+        "26:44"
       ]
     },
     {
@@ -41,7 +45,9 @@
         "22:40",
         "23:10",
         "23:40",
-        "24:10"
+        "24:10",
+        "25:10",
+        "26:10"
       ]
     },
     {
@@ -53,7 +59,9 @@
         "22:45",
         "23:15",
         "23:45",
-        "24:15"
+        "24:15",
+        "25:15",
+        "26:15"
       ]
     },
     {
@@ -65,7 +73,9 @@
         "22:42",
         "23:12",
         "23:42",
-        "24:12"
+        "24:12",
+        "25:12",
+        "26:12"
       ]
     },
     {
@@ -77,7 +87,9 @@
         "22:39",
         "23:09",
         "23:39",
-        "24:09"
+        "24:09",
+        "25:09",
+        "26:09"
       ]
     },
     {
@@ -89,7 +101,9 @@
         "22:48",
         "23:18",
         "23:48",
-        "24:18"
+        "24:18",
+        "25:18",
+        "26:18"
       ]
     },
     {
@@ -103,7 +117,9 @@
         "23:06",
         "23:26",
         "23:46",
-        "24:16"
+        "24:16",
+        "25:16",
+        "26:16"
       ]
     }
   ],
@@ -127,16 +143,16 @@
     {
       "id": "shuttle_gen_2250",
       "kind": "general",
-      "name": "General shuttle 22:50 (to Southern Cross)",
-      "stop_id": "shuttle_stop_batman_ave",
+      "name": "General shuttle 22:50 (to Southern Cross, from Flinders St coach bays)",
+      "stop_id": "coach_bays",
       "depart": "22:50",
       "capacity": 1200
     },
     {
       "id": "shuttle_gen_2330",
       "kind": "general",
-      "name": "General shuttle 23:30 (to Southern Cross)",
-      "stop_id": "shuttle_stop_batman_ave",
+      "name": "General shuttle 23:30 (to Southern Cross, from Flinders St coach bays)",
+      "stop_id": "coach_bays",
       "depart": "23:30",
       "capacity": 600
     }

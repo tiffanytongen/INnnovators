@@ -245,6 +245,9 @@ function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, na
           </View>
           {plan.transport.depart ? <Text style={s.time}>{plan.transport.depart}</Text> : null}
         </View>
+        {plan.wait_until && (
+          <Text style={[s.badge, { marginTop: 12, backgroundColor: C.bg }]}>⏳ {t.wait}: {name(plan.wait_at)} · {t.until} {plan.wait_until}</Text>
+        )}
         <View style={{ marginTop: 12 }}><RouteMap bundle={bundle} st={plan} scenarioKey={scenarioKey} /></View>
         <Text style={[s.link, { marginTop: 12 }]}>{t.seePlan} ›</Text>
       </Pressable>

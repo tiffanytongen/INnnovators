@@ -5,6 +5,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { claude, MODEL, FALLBACK_OPTS } from "./claude";
 import { site, transport, scenarios, nameOf, type Profile } from "./data";
 import { feasibleOptions, worldFor, closedPlaces, leaveTime } from "./options";
+import { assignmentFor } from "./allocate";
 import { parseScenario, describePart } from "./scenario";
 import { ClaudePlanSchema, validatePlan, rulesFallbackPlan, type Plan } from "./plan";
 import { toTime } from "./data";
@@ -41,23 +42,36 @@ ${JSON.stringify(transport)}`;
 export function userPrompt(profile: Profile, scenario: string) {
   const parts = parseScenario(scenario)!;
   const w = worldFor(parts);
-  const options = feasibleOptions(profile, parts);
+  // Crowd allocation across ALL attendees decides which gate/wave this person gets (no gate over capacity).
+  const assigned = assignmentFor(profile, scenario);
+  const options = assigned ? assigned.options : feasibleOptions(profile, parts);
+  const start = leaveTime(profile, w) + (assigned?.delay ?? 0);
   const effects = parts.flatMap((p) => {
     const t = scenarios.types.find((s) => s.type === p.type)!;
     return [`${describePart(p)} [${t.emp_section}]: ${t.effects.join("; ")}`];
   });
+  const isAssigned = (o: (typeof options)[number]) => !!assigned && o.gate_id === assigned.option.gate_id && o.route_id === assigned.option.route_id && o.transport.ref_id === assigned.option.transport.ref_id && o.transport.depart === assigned.option.transport.depart;
+  const crowd = assigned
+    ? `CROWD ALLOCATION (decided across all ~15,000 attendees so no gate goes over capacity; you must follow it):
+- Main plan MUST be the option marked ASSIGNED below.
+- ${assigned.delay > 0 ? `They are in a later exit wave: they should stay where they are (or somewhere covered, if storming) and start moving at ${toTime(start)}. Set wait_at to a safe, open place near them and wait_until to "${toTime(start)}". Explain kindly that this avoids the crush at the gates.` : `They leave in the first wave, at ${toTime(start)}.`}
+- If the assigned gate isn't their closest, say briefly that the nearer gate is full.`
+    : "CROWD ALLOCATION: no capacity left for this person in any wave. Give the safest option and set needs_human = true (staff will help).";
   return {
     options,
+    assigned,
     text: `PERSON:
 ${JSON.stringify({ ...profile, weight: undefined, language_name: LANG_NAMES[profile.lang] ?? profile.lang }, null, 1)}
 
 SCENARIO: ${scenario}
-${effects.length ? effects.map((e) => `- ${e}`).join("\n") : "- Normal night. River Stage headliner ends 22:30 and ~15,000 people leave at once. Pick the best everyday exit and help spread the crowd."}
+${effects.length ? effects.map((e) => `- ${e}`).join("\n") : "- Normal night. River Stage headliner ends 22:30 and ~15,000 people leave at once."}
 Closed places: ${closedPlaces(w).map(nameOf).join(", ") || "none"}
-They start moving at ${toTime(leaveTime(profile, w))} from ${nameOf(profile.location_at_end)}.
+Normal exit time from ${nameOf(profile.location_at_end)}: ${toTime(leaveTime(profile, w))}.
 
-CANDIDATE OPTIONS (rules-checked, best-first by a simple score; you may re-rank):
-${options.map((o, i) => `${i + 1}. gate_id=${o.gate_id} route_id=${o.route_id} transport=${JSON.stringify(o.transport)} arrive=${o.arrive} latest_leave=${o.latest_leave}${o.zone_change ? " PICKUP_ZONE_CHANGES" : ""}${o.mode_change ? " MODE_CHANGE" : ""}\n   ${o.facts.join("\n   ")}`).join("\n")}
+${crowd}
+
+CANDIDATE OPTIONS (rules-checked, leaving at ${toTime(start)}):
+${options.map((o, i) => `${i + 1}.${isAssigned(o) ? " [ASSIGNED]" : ""} gate_id=${o.gate_id} route_id=${o.route_id} transport=${JSON.stringify(o.transport)} arrive=${o.arrive} latest_leave=${o.latest_leave}${o.zone_change ? " PICKUP_ZONE_CHANGES" : ""}${o.mode_change ? " MODE_CHANGE" : ""}\n   ${o.facts.join("\n   ")}`).join("\n")}
 
 Write the plan for ${profile.name} in ${LANG_NAMES[profile.lang] ?? profile.lang}.`,
   };
