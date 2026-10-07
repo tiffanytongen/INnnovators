@@ -2,14 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { site } from "./data";
 
-export type CrowdLevel = "low" | "moderate" | "heavy" | "closed";
-
-export type CrowdRouteState = {
-  level: CrowdLevel;
-  updated_at: string;
-};
-
-export type CrowdState = Record<string, CrowdRouteState>;
+import { normalizeCrowd, CROWD_COST, type CrowdLevel, type CrowdState } from "./crowd-model";
+export type { CrowdLevel, CrowdState } from "./crowd-model";
 
 const CROWD_PATH = path.join(
   process.cwd(),
@@ -34,10 +28,15 @@ function defaultCrowdState(): CrowdState {
 
 export function readCrowd(): CrowdState {
   if (!fs.existsSync(CROWD_PATH)) {
-    return defaultCrowdState();
+    return {}; // No organizer report yet; clients show Unknown.
   }
 
-  return JSON.parse(fs.readFileSync(CROWD_PATH, "utf8"));
+  try {
+    const saved = normalizeCrowd(JSON.parse(fs.readFileSync(CROWD_PATH, "utf8")));
+    return Object.fromEntries(site.routes.flatMap(route => saved[route.id] ? [[route.id, saved[route.id]]] : []));
+  } catch {
+    return {}; // Unknown conditions, not a fabricated live reading.
+  }
 }
 
 export function setCrowdLevel(
@@ -79,17 +78,5 @@ export function resetCrowd(): CrowdState {
 }
 
 export function crowdPenalty(level: CrowdLevel): number {
-  switch (level) {
-    case "low":
-      return 0;
-
-    case "moderate":
-      return 4;
-
-    case "heavy":
-      return 12;
-
-    case "closed":
-      return Infinity;
-  }
+  return CROWD_COST[level];
 }

@@ -104,7 +104,7 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
       const latestLeave = (depart: number, buffer: number) => toTime(Math.max(leave, depart - walk - buffer));
       const coverFacts = [
         `${route.name}: ${route.covered ? "covered" : "NOT covered"}, ${route.step_free ? "step-free" : "has steps"}, ${route.walk_min} min`,
-        `Live crowd on ${route.name}: ${crowdLevel}${crowdCost ? ` (+${crowdCost} min crowd penalty)` : ""}`,
+        `Latest crowd on ${route.name}: ${crowd[route.id] ? crowdLevel : "unknown"}${crowdCost ? ` (+${crowdCost} ranking penalty)` : ""}`,
         `${gate.name} → ${placeById(conn.id)?.name}: ${conn.walk_min} min, ${conn.covered ? "covered" : "not covered"}${conn.note ? ` (${conn.note})` : ""}`
       ];
 

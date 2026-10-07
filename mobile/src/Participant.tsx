@@ -1,150 +1,19 @@
 // Participant side: whose phone → calm home screen → full plan. Works offline once loaded.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Linking, Pressable, ScrollView, Text, TextInput, Vibration, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickCachedScenario } from "../../lib/scenario";
 import { verifyTrigger, type Trigger } from "../../lib/trigger";
 import { strings } from "../../lib/i18n";
-import SiteMap, { type MapData } from "./SiteMap";
+import SiteMap from "./SiteMap";
 import Signup from "./Signup";
 import { C, s, getJSON, store, hhmm } from "./theme";
 
-// ---- types (same shape as lib/plan.ts, kept local so the app doesn't pull in server code) ----
-type Transport = { mode: "train" | "shuttle" | "taxi" | "pickup"; ref_id: string; line: string; platform: string; depart: string | null };
-type Step = {
-  action: string; gate_id: string; route_id: string; transport: Transport; group_meetup: string | null;
-  wait_at: string | null; wait_until: string | null; volunteer_escort: boolean; notify_contact: boolean;
-  reason: string; text_localised: string; reason_localised: string;
-};
-type Plan = Step & { source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean };
-type Bundle = {
-  profile: {
-    id: string;
-    name: string;
-    lang: string;
-    group: { size: number } | null;
-    location_at_end: string;
-  };
-
-  plans: Record<string, Plan>;
-  names: Record<string, string>;
-  public_key: string;
-  fetched_at: string;
-
-  walking?: {
-    routes: Record<
-      string,
-      {
-        name: string;
-        walk_min: number;
-        from: string[];
-        gate_id: string;
-        covered: boolean;
-        step_free: boolean;
-      }
-    >;
-
-    connections: Record<
-      string,
-      {
-        walk_min: number;
-        covered: boolean;
-        step_free: boolean;
-      }
-    >;
-  };
-
-  plan_updated_at?: string | null;
-
-  map?: MapData;
-  closed?: Record<string, { gates: string[]; places: string[]; storm: boolean }>;
-};
-
-type CrowdLevel = "low" | "moderate" | "heavy" | "closed";
-
-type CrowdState = Record<
-  string,
-  {
-    level: CrowdLevel;
-    updated_at: string;
-  }
->;
-
-const CROWD_LABELS: Record<CrowdLevel, string> = {
-  low: "🟢 Low",
-  moderate: "🟡 Moderate",
-  heavy: "🔴 Heavy",
-  closed: "⛔ Closed",
-};
-
-const CROWD_COST: Record<CrowdLevel, number> = {
-  low: 0,
-  moderate: 4,
-  heavy: 12,
-  closed: 9999,
-};
-
-function crowdAwarePlan(
-  plan: Plan,
-  crowd: CrowdState,
-  walking: Bundle["walking"],
-  currentZone: string
-) {
-  const steps: Step[] = [plan, ...plan.alternatives];
-
-  const ranked = steps
-    .map((st, index) => {
-      const level = crowd[st.route_id]?.level ?? "low";
-      const route = walking?.routes[st.route_id];
-
-      const startsHere =
-        !route ||
-        route.from.includes(currentZone) ||
-        (currentZone === "river_stage" &&
-          route.from.includes("accessible_platform"));
-
-      return {
-        st,
-        index,
-        level,
-        startsHere,
-        score: index * 3 + CROWD_COST[level],
-      };
-    })
-    .filter((x) => x.level !== "closed" && x.startsHere)
-    .sort((a, b) => a.score - b.score);
-
-  const best = ranked[0];
-
-  if (!best || best.index === 0) {
-    return {
-      plan,
-      changed: false,
-      fromRoute: null as string | null,
-    };
-  }
-
-  const rest = steps.filter((_, index) => index !== best.index);
-
-  return {
-    plan: {
-      ...plan,
-      ...best.st,
-      alternatives: rest,
-    },
-    changed: true,
-    fromRoute: plan.route_id,
-  };
-}
+import { displayTime, normalizeBundle, crowdAwarePlan, supportedZones, resolveZone, type Bundle, type Step, type Plan } from "./participant-model";
+import { normalizeCrowd, CROWD_LABELS, type CrowdState } from "../../lib/crowd-model";
 
 type Strings = ReturnType<typeof strings>;
 
-
-const CURRENT_ZONES = [
-  { id: "river_stage", label: "River Stage" },
-  { id: "lawn_stage", label: "Lawn Stage" },
-  { id: "tent_stage", label: "Tent Stage" },
-] as const;
 
 const HEROES = [
   { id: "mei_19", name: "Mei", desc: "19 · reads Mandarin · train home" },
@@ -169,16 +38,21 @@ export default function Participant({ server, onServer }: { server: string; onSe
   };
   if (!ready) return null;
   if (signingUp) return <Signup server={server} onCancel={() => setSigningUp(false)} onDone={(id) => { setSigningUp(false); choose(id); }} />;
-  return personId ? <PersonApp server={server} personId={personId} onSwitch={() => choose(null)} /> : <PickScreen server={server} onServer={onServer} onPick={choose} onSignup={() => setSigningUp(true)} />;
+  return personId ? <PersonApp key={`${server}:${personId}`} server={server} personId={personId} onSwitch={() => choose(null)} /> : <PickScreen server={server} onServer={onServer} onPick={choose} onSignup={() => setSigningUp(true)} />;
 }
 
 // ---------- demo: choose whose phone this is ----------
 function PickScreen({ server, onServer, onPick, onSignup }: { server: string; onServer: (v: string) => void; onPick: (id: string) => void; onSignup: () => void }) {
   const [other, setOther] = useState("");
-  const [status, setStatus] = useState<"checking" | "ok" | "fail">("checking");
+  const [connection, setConnection] = useState<{ server: string; status: "ok" | "fail" } | null>(null);
+  const status = connection?.server === server ? connection.status : "checking";
   useEffect(() => {
-    setStatus("checking");
-    getJSON(`${server}/api/trigger`).then(() => setStatus("ok"), () => setStatus("fail"));
+    let active = true;
+    getJSON(`${server}/api/trigger`).then(
+      () => { if (active) setConnection({ server, status: "ok" }); },
+      () => { if (active) setConnection({ server, status: "fail" }); },
+    );
+    return () => { active = false; };
   }, [server]);
 
   return (
@@ -187,7 +61,7 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
       <Text style={[s.muted, { fontSize: 17 }]}>Plan A is your day. Plan B is what happens when it changes.</Text>
       <Pressable onPress={onSignup} style={({ pressed }) => [s.alertCard, { marginTop: 12 }, pressed && s.pressed]}>
         <Text style={s.alertTitle}>✍️ New here? Sign up in 30 seconds</Text>
-        <Text style={[s.body, { color: C.text }]}>Tell us how you're getting home and we'll make your plan.</Text>
+        <Text style={[s.body, { color: C.text }]}>Tell us how you’re getting home and we’ll make your plan.</Text>
       </Pressable>
       <Text style={[s.sectionLabel, { marginTop: 18 }]}>Or open an existing attendee (demo)</Text>
       {HEROES.map((h) => (
@@ -228,68 +102,68 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
   const [error, setError] = useState("");
   const lastRaw = useRef<string | null>(null);
 
-  // Saved copy first (instant, offline), then refresh from the server.
-  const refreshBundle = useCallback(async () => {
-    try {
-      const b = await getJSON<Bundle>(`${server}/api/bundle/${personId}`, 5000);
-      await store.set(`planb:bundle:${personId}`, b);
-      setBundle(b);
-
-      setCurrentZone((existing) =>
-        existing || b.profile.location_at_end || "river_stage"
-      );
-
-      setError("");
-    } catch {
-      const saved = await store.get<Bundle>(`planb:bundle:${personId}`);
-      if (!saved) setError("Your plan isn't on this phone yet. Open the app once with signal.");
-    }
-  }, [server, personId]);
-
+  // Read and validate the offline copy before starting network refreshes.
   useEffect(() => {
-    (async () => {
-      const [saved, t, savedCrowd, savedZone] = await Promise.all([
-        store.get<Bundle>(`planb:bundle:${personId}`),
-        store.get<Trigger>("planb:trigger"),
-        store.get<CrowdState>("planb:crowd"),
-        store.get<string>(`planb:zone:${personId}`),
-      ]);
-
-      if (saved) {
-        setBundle(saved);
-        setCurrentZone(
-          savedZone ||
-          saved.profile.location_at_end ||
-          "river_stage"
-        );
+    let active = true;
+    const refresh = async () => {
+      try {
+        const b = normalizeBundle(await getJSON<unknown>(`${server}/api/bundle/${personId}`, 5000), personId);
+        if (!b) throw new Error("Invalid bundle");
+        if (!active) return;
+        setBundle(b);
+        setCurrentZone(existing => existing || b.profile.location_at_end);
+        setError("");
+        await store.set(`planb:bundle:${personId}`, b);
+      } catch {
+        const saved = normalizeBundle(await store.get<unknown>(`planb:bundle:${personId}`), personId);
+        if (active && !saved) setError("Your plan isn't on this phone yet. Open the app once with signal.");
       }
-
-      if (savedCrowd) setCrowd(savedCrowd);
-      if (t) { setTrigger(t); lastRaw.current = t.raw; }
-      refreshBundle();
+    };
+    void (async () => {
+      const [saved, t, savedCrowd, savedZone] = await Promise.all([
+        store.get<unknown>(`planb:bundle:${personId}`),
+        store.get<Trigger>("planb:trigger"),
+        store.get<unknown>("planb:crowd"),
+        store.get<unknown>(`planb:zone:${personId}`),
+      ]);
+      if (!active) return;
+      const cached = normalizeBundle(saved, personId);
+      if (cached) setBundle(cached);
+      setCurrentZone(typeof savedZone === "string" ? savedZone : cached?.profile.location_at_end ?? "");
+      setCrowd(normalizeCrowd(savedCrowd));
+      if (cached && t && typeof t.raw === "string") {
+        const verified = verifyTrigger(t.raw, cached.public_key);
+        if (verified) { setTrigger(verified); lastRaw.current = verified.raw; }
+      }
+      await refresh();
     })();
-    const id = setInterval(refreshBundle, 30000);
-    return () => clearInterval(id);
-  }, [personId, refreshBundle]);
+    const id = setInterval(refresh, 30000);
+    return () => { active = false; clearInterval(id); };
+  }, [personId, server]);
 
   // Updates from Fieldday (simulated push/SMS). Need some signal; verified on the phone with the cached public key.
   useEffect(() => {
     if (!bundle) return;
+    let active = true;
+    let pending = false;
     const poll = async () => {
+      if (pending) return;
+      pending = true;
       try {
         const { trigger: raw, crowd: liveCrowd } = await getJSON<{
           trigger: string | null;
           crowd: CrowdState;
         }>(`${server}/api/trigger`, 2500);
 
+        if (!active) return;
         setOnline(true);
 
         if (liveCrowd) {
-          setCrowd(liveCrowd);
+          setCrowd(normalizeCrowd(liveCrowd));
           store.set("planb:crowd", liveCrowd);
         }
 
-        if (!raw || raw === lastRaw.current) return;
+        if (typeof raw !== "string" || !raw || raw === lastRaw.current) return;
         const t = verifyTrigger(raw, bundle.public_key);
         if (!t) return; // forged or corrupted: ignore
         lastRaw.current = raw;
@@ -297,12 +171,14 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
         setTrigger(t);
         if (t.code !== "NORMAL") Vibration.vibrate([0, 250, 120, 250]);
       } catch {
-        setOnline(false);
+        if (active) setOnline(false);
+      } finally {
+        pending = false;
       }
     };
     poll();
     const id = setInterval(poll, 2000);
-    return () => clearInterval(id);
+    return () => { active = false; clearInterval(id); };
   }, [bundle, server]);
 
   const current = useMemo(() => {
@@ -313,15 +189,20 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
 
     if (!basePlan) return null;
 
+    const zone = resolveZone(bundle, basePlan, currentZone);
     const crowdResult = crowdAwarePlan(
       basePlan,
       crowd,
       bundle.walking,
-      currentZone || bundle.profile.location_at_end
+      zone,
+      bundle.closed?.[key]
     );
 
     return {
       plan: crowdResult.plan,
+      zone,
+      zones: supportedZones(bundle, basePlan),
+      unavailable: crowdResult.unavailable,
       key,
       exact: exact || code === "NORMAL",
       isPlanB: code !== "NORMAL",
@@ -354,7 +235,9 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
     crowd,
     crowdChanged: current.crowdChanged,
     crowdFromRoute: current.crowdFromRoute,
-    currentZone,
+    currentZone: current.zone,
+    zones: current.zones,
+    unavailable: current.unavailable,
     onZoneChange: (zone: string) => {
       setCurrentZone(zone);
       store.set(`planb:zone:${personId}`, zone);
@@ -363,7 +246,7 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
 
   return view === "home"
     ? <HomeScreen {...props} onOpen={() => setView("plan")} onSwitch={onSwitch} />
-    : <PlanScreen key={trigger?.raw ?? "NORMAL"} {...props} onBack={() => setView("home")} />; // new update → start from option 1
+    : <PlanScreen key={JSON.stringify([trigger?.raw, current.zone, current.unavailable, [current.plan, ...current.plan.alternatives].map(st => [st.route_id, st.transport.ref_id, st.transport.depart])])} {...props} onBack={() => setView("home")} />; // new update → start from option 1
 }
 
 type ScreenProps = {
@@ -375,6 +258,8 @@ type ScreenProps = {
   crowdChanged: boolean;
   crowdFromRoute: string | null;
   currentZone: string;
+  zones: string[];
+  unavailable: boolean;
   onZoneChange: (zone: string) => void;
 };
 
@@ -413,6 +298,8 @@ function HomeScreen({
   server,
   currentZone,
   onZoneChange,
+  zones,
+  unavailable,
   onOpen,
   onSwitch,
 }: ScreenProps & { onOpen: () => void; onSwitch: () => void }) {
@@ -429,7 +316,9 @@ function HomeScreen({
       </View>
 
       {/* Status */}
-      {isPlanB ? (
+      {unavailable ? (
+        <Text style={s.redBox}>No supported open route is available from this location. Go to the nearest info tent or ask a volunteer.</Text>
+      ) : isPlanB ? (
         <Pressable onPress={onOpen} style={({ pressed }) => [s.alertCard, pressed && s.pressed]}>
           <Text style={s.alertTitle}>⚠︎ {t.changed}{trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}</Text>
           <Text style={s.alertBody}>{plan.text_localised}</Text>
@@ -459,7 +348,8 @@ function HomeScreen({
             gap: 8,
           }}
         >
-          {CURRENT_ZONES.map((zone) => {
+          {zones.map((id) => {
+            const zone = { id, label: name(id) };
             const active = currentZone === zone.id;
 
             return (
@@ -492,7 +382,7 @@ function HomeScreen({
       </View>
 
       {/* Way home */}
-      <Pressable onPress={onOpen} style={({ pressed }) => [s.card, pressed && s.pressed]}>
+      {!unavailable && <Pressable onPress={onOpen} style={({ pressed }) => [s.card, pressed && s.pressed]}>
         <Text style={s.sectionLabel}>{t.wayHome}</Text>
         <View style={[s.row, { marginTop: 10 }]}>
           <View style={s.gateBadge}><Text style={s.gateLetter}>{plan.gate_id.replace("gate_", "")}</Text></View>
@@ -504,7 +394,7 @@ function HomeScreen({
         </View>
         <View style={{ marginTop: 12 }}><RouteMap bundle={bundle} st={plan} scenarioKey={scenarioKey} /></View>
         <Text style={[s.link, { marginTop: 12 }]}>{t.seePlan} ›</Text>
-      </Pressable>
+      </Pressable>}
 
       {/* Meet-up */}
       {plan.group_meetup && bundle.profile.group && (
@@ -542,11 +432,12 @@ function PlanScreen({
   crowdChanged,
   crowdFromRoute,
   currentZone,
+  unavailable,
   onBack,
 }: ScreenProps & { onBack: () => void }) {
   const [step, setStep] = useState(0);
   const steps: Step[] = [plan, ...plan.alternatives];
-  const escalating = step >= steps.length;
+  const escalating = unavailable || step >= steps.length;
   const st = steps[Math.min(step, steps.length - 1)];
   const notEn = bundle.profile.lang !== "en";
 
@@ -572,7 +463,7 @@ function PlanScreen({
             <View style={[s.card, { borderColor: C.text, borderWidth: 2 }]}>
               <Text style={s.cardTitle}>{t.showVolunteer}</Text>
               <Text style={s.body}>Name: {bundle.profile.name} · ID {bundle.profile.id}</Text>
-              <Text style={s.body}>Planned exit: {name(plan.gate_id)} → {plan.transport.line} {plan.transport.depart ?? ""}</Text>
+              <Text style={s.body}>Previously planned exit: {name(plan.gate_id)} → {plan.transport.line} {plan.transport.depart ?? ""}</Text>
             </View>
           </View>
         ) : (
@@ -599,73 +490,98 @@ function PlanScreen({
             </View>
 
             <WalkingCard
-  bundle={bundle}
-  st={st}
-  name={name}
-  crowd={crowd}
-  currentZone={currentZone}
-/>
+              bundle={bundle}
+              st={st}
+              name={name}
+              crowd={crowd}
+              currentZone={currentZone}
+            />
 
-            {crowdChanged && crowdFromRoute && (
+            {step === 0 && crowdChanged && crowdFromRoute && (
               <Text style={s.noteBox}>
-                ↪ Route updated: {name(crowdFromRoute)} is currently{" "}
-                {CROWD_LABELS[crowd[crowdFromRoute]?.level ?? "low"]}.
-                {" "}Plan B switched you to {name(st.route_id)}, which is{" "}
-                {CROWD_LABELS[crowd[st.route_id]?.level ?? "low"]}.
+                ↪ Route updated from {name(crowdFromRoute)} to {name(st.route_id)}
+                {" "}for your location and the latest crowd conditions.
               </Text>
             )}
 
-<RouteMap
-  bundle={bundle}
-  st={st}
-  scenarioKey={scenarioKey}
-/>
+            <RouteMap
+              bundle={bundle}
+              st={st}
+              scenarioKey={scenarioKey}
+            />
 
             {st.volunteer_escort && <Text style={s.badge}>🙋 {t.volunteer}</Text>}
             {st.notify_contact && <Text style={s.badge}>✉︎ {t.contactNotified}</Text>}
 
             <View>
-  <Text style={s.sectionLabel}>{t.why}</Text>
-  <Text style={[s.body, { marginTop: 4 }]}>
-    {st.reason_localised}
-  </Text>
-  {notEn && (
-    <Text style={[s.muted, { marginTop: 4 }]}>
-      {st.reason}
-    </Text>
-  )}
-</View>
+              <Text style={s.sectionLabel}>{t.why}</Text>
+              <Text style={[s.body, { marginTop: 4 }]}>
+                {st.reason_localised}
+              </Text>
+              {notEn && (
+                <Text style={[s.muted, { marginTop: 4 }]}>
+                  {st.reason}
+                </Text>
+              )}
+            </View>
 
-<Text style={s.tiny}>
-  Updated{" "}
-  {isPlanB && trigger
-    ? hhmm(trigger.issued_at)
-    : new Date(bundle.plan_updated_at ?? bundle.fetched_at).toLocaleTimeString(
-        "en-AU",
-        {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }
-      )}
-</Text>
+            <Text style={s.tiny}>
+              Updated{" "}
+              {isPlanB && trigger
+                ? hhmm(trigger.issued_at)
+                : displayTime(bundle.plan_updated_at ?? bundle.fetched_at)}
+            </Text>
 
-<Text style={s.tiny}>
-  {t.source}: {plan.source}
-</Text>
+            <Text style={s.tiny}>
+              {t.source}: {plan.source}
+            </Text>
 
+          </>
+        )}
+      </ScrollView>
       <View style={s.footer}>
         {!escalating && (
-          <Pressable onPress={() => setStep(step + 1)} style={({ pressed }) => [s.primaryButton, pressed && s.pressed]}>
+          <Pressable onPress={() => setStep(value => value + 1)} style={({ pressed }) => [s.primaryButton, pressed && s.pressed]}>
             <Text style={s.primaryButtonText}>{t.notWork}</Text>
           </Pressable>
         )}
-        {step > 0 && (
+        {step > 0 && !unavailable && (
           <Pressable onPress={() => setStep(0)}>
             <Text style={[s.link, { textAlign: "center", padding: 6 }]}>{t.backToFirst}</Text>
           </Pressable>
         )}
       </View>
+    </View>
+  );
+}
+
+
+function Detail({
+  label,
+  value,
+  time,
+}: {
+  label: string;
+  value: string;
+  time?: string | null;
+}) {
+  return (
+    <View
+      style={[
+        s.row,
+        {
+          borderTopWidth: 1,
+          borderTopColor: C.line,
+          paddingTop: 12,
+        },
+      ]}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={s.muted}>{label}</Text>
+        <Text style={s.cardTitle}>{value}</Text>
+      </View>
+
+      {time ? <Text style={s.time}>{time}</Text> : null}
     </View>
   );
 }
@@ -695,7 +611,7 @@ function WalkingCard({
 
   if (!route) return null;
 
-  const crowdLevel = crowd[st.route_id]?.level ?? "low";
+  const crowdLevel = crowd[st.route_id]?.level;
   const totalWalk = route.walk_min + (connection?.walk_min ?? 0);
 
   return (
@@ -703,12 +619,13 @@ function WalkingCard({
       <Text style={s.sectionLabel}>Your walking route</Text>
 
       <Text style={s.h2}>
-        🚶 {totalWalk} min walk
+        🚶 {totalWalk} min walk{connection ? "" : " to gate (onward time unavailable)"}
       </Text>
 
       <Text style={s.body}>
-        Live crowd: {CROWD_LABELS[crowdLevel]}
+        Latest crowd: {crowdLevel ? CROWD_LABELS[crowdLevel] : "Unknown"}
       </Text>
+      <Text style={s.tiny}>Crowd updated: {displayTime(crowd[st.route_id]?.updated_at)}</Text>
 
       <Text style={s.cardTitle}>
         Walk to {name(st.gate_id)}
@@ -727,11 +644,11 @@ function WalkingCard({
         {name(destination)}
       </Text>
 
-      {route.covered && (
+      {route.covered && connection?.covered && (
         <Text style={s.muted}>☂ Covered route</Text>
       )}
 
-      {route.step_free && (
+      {route.step_free && connection?.step_free && (
         <Text style={s.muted}>♿ Step-free</Text>
       )}
     </View>

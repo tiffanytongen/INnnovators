@@ -1,6 +1,8 @@
+import { normalizeCrowd, CROWD_LABELS, type CrowdLevel, type CrowdState } from "../../lib/crowd-model";
+import { displayTime } from "./participant-model";
 // Organizer side (Fieldday staff): Incident → AI check → preview → Approve & send; and the Pre-mortem.
 // All AI calls happen on the laptop server (it holds the API key); this screen only talks to it.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { canonical, describePart, parseScenario, type ScenarioPart } from "../../lib/scenario";
 import SiteMap, { type MapData } from "./SiteMap";
@@ -143,7 +145,7 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
         <Button title={busy === "check" ? "AI is reading…" : "Check"} onPress={check} busy={busy === "check"} disabled={!text.trim()} />
         {parsed && (
           <View style={{ gap: 8 }}>
-            <Text style={s.muted}>The AI understood this. Tap ✕ to remove anything that's wrong.</Text>
+            <Text style={s.muted}>The AI understood this. Tap ✕ to remove anything that’s wrong.</Text>
             {parts.map((p, i) => (
               <View key={i} style={[s.row, { backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 }]}>
                 <Text style={[s.cardTitle, { flex: 1, fontSize: 17 }]}>{ICONS[p.type]} {describePart(p)}</Text>
@@ -220,23 +222,6 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
 }
 
 
-type CrowdLevel = "low" | "moderate" | "heavy" | "closed";
-
-type CrowdState = Record<
-  string,
-  {
-    level: CrowdLevel;
-    updated_at: string;
-  }
->;
-
-const CROWD_LABELS: Record<CrowdLevel, string> = {
-  low: "🟢 Low",
-  moderate: "🟡 Moderate",
-  heavy: "🔴 Heavy",
-  closed: "⛔ Closed",
-};
-
 const ROUTE_NAMES: Record<string, string> = {
   route_A_open: "River Stage → Gate A",
   route_B_lawn: "Lawn path → Gate B",
@@ -250,19 +235,28 @@ function CrowdTab({ server }: { server: string }) {
   const [crowd, setCrowd] = useState<CrowdState>({});
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-
-  async function refresh() {
-    const res = await getJSON<{ crowd: CrowdState }>(
-      `${server}/api/crowd`
-    );
-    setCrowd(res.crowd);
-  }
+  const revision = useRef(0);
+  const updating = useRef(false);
 
   useEffect(() => {
-    refresh().catch((e) => setError(String(e)));
+    let active = true;
+    const refresh = async () => {
+      if (updating.current) return;
+      const requestRevision = revision.current;
+      try {
+        const res = await getJSON<{ crowd: unknown }>(`${server}/api/crowd`);
+        if (active && requestRevision === revision.current) { setCrowd(normalizeCrowd(res.crowd)); setError(""); }
+      } catch (e) { if (active && requestRevision === revision.current) setError(String(e)); }
+    };
+    void refresh();
+    const timer = setInterval(refresh, 5000);
+    return () => { active = false; clearInterval(timer); };
   }, [server]);
 
   async function update(routeId: string, level: CrowdLevel) {
+    if (updating.current) return;
+    updating.current = true;
+    revision.current += 1;
     setBusy(routeId);
     setError("");
 
@@ -275,10 +269,11 @@ function CrowdTab({ server }: { server: string }) {
         }
       );
 
-      setCrowd(res.crowd);
+      setCrowd(normalizeCrowd(res.crowd));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      updating.current = false;
       setBusy("");
     }
   }
@@ -299,7 +294,9 @@ function CrowdTab({ server }: { server: string }) {
         </Text>
       </View>
 
-      {Object.entries(crowd).map(([routeId, state]) => (
+      {Object.keys(ROUTE_NAMES).map((routeId) => {
+        const state = crowd[routeId];
+        return (
         <View key={routeId} style={[s.card, { gap: 10 }]}>
           <View style={s.row}>
             <View style={{ flex: 1 }}>
@@ -307,7 +304,7 @@ function CrowdTab({ server }: { server: string }) {
                 {ROUTE_NAMES[routeId] ?? routeId}
               </Text>
               <Text style={s.muted}>
-                Current: {CROWD_LABELS[state.level]}
+                Current: {(state ? CROWD_LABELS[state.level] : "Unknown")}
               </Text>
             </View>
           </View>
@@ -323,7 +320,7 @@ function CrowdTab({ server }: { server: string }) {
               (level) => (
                 <Pressable
                   key={level}
-                  disabled={busy === routeId}
+                  disabled={!!busy}
                   onPress={() => update(routeId, level)}
                   style={[
                     s.tag,
@@ -331,14 +328,14 @@ function CrowdTab({ server }: { server: string }) {
                       paddingHorizontal: 10,
                       paddingVertical: 8,
                       backgroundColor:
-                        state.level === level ? C.text : C.bg,
+                        state?.level === level ? C.text : C.bg,
                     },
                   ]}
                 >
                   <Text
                     style={{
                       fontWeight: "700",
-                      color: state.level === level ? "#fff" : C.text,
+                      color: state?.level === level ? "#fff" : C.text,
                     }}
                   >
                     {CROWD_LABELS[level]}
@@ -350,14 +347,10 @@ function CrowdTab({ server }: { server: string }) {
 
           <Text style={s.tiny}>
             Updated{" "}
-            {new Date(state.updated_at).toLocaleTimeString("en-AU", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
+            {displayTime(state?.updated_at)}
           </Text>
         </View>
-      ))}
+      ); })}
 
       {error ? <Text style={s.redBox}>{error}</Text> : null}
     </ScrollView>
@@ -390,7 +383,7 @@ function PremortemTab({ server }: { server: string }) {
     }
   }
 
-  if (!report) return <View style={{ padding: 20 }}>{error ? <Text style={s.redBox}>Can't reach the Plan B server at {server}.</Text> : <ActivityIndicator />}</View>;
+  if (!report) return <View style={{ padding: 20 }}>{error ? <Text style={s.redBox}>Can’t reach the Plan B server at {server}.</Text> : <ActivityIndicator />}</View>;
   const current = report.results.find((r) => r.scenario === selected) ?? report.results[0];
 
   return (

@@ -5,6 +5,10 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    files: ["mobile/metro.config.js"],
+    rules: { "@typescript-eslint/no-require-imports": "off" }, // Metro loads CommonJS configuration.
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,7 +16,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    "mobile/**", // Expo app has its own config
+    "mobile/node_modules/**",
+    "mobile/.expo/**",
+    "mobile/dist/**",
   ]),
 ]);
 

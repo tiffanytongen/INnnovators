@@ -23,18 +23,22 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
+  const body: unknown = await req.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "Expected a JSON object" }, { status: 400 });
+  }
+  const input = body as Record<string, unknown>;
 
-  if (body.action === "reset") {
+  if (input.action === "reset") {
     return Response.json({
       crowd: resetCrowd(),
     });
   }
 
-  const routeId = body.route_id;
-  const level = body.level as CrowdLevel;
+  const routeId = input.route_id;
+  const level = input.level as CrowdLevel;
 
-  if (!site.routes.some((r) => r.id === routeId)) {
+  if (typeof routeId !== "string" || !site.routes.some((r) => r.id === routeId)) {
     return Response.json(
       { error: "Unknown route" },
       { status: 400 }
