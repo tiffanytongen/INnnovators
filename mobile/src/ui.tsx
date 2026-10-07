@@ -22,7 +22,7 @@ export function Rule({ style }: { style?: StyleProp<ViewStyle> }) {
 // White rounded card with a soft shadow. Use only to group genuinely related things.
 export function Card({ children, style, tint }: { children: ReactNode; style?: StyleProp<ViewStyle>; tint?: boolean }) {
   const p = usePal();
-  return <View style={[s.shadow, { backgroundColor: tint ? p.soft : p.card, borderRadius: 20, padding: 20, gap: 12 }, style]}>{children}</View>;
+  return <View style={[s.shadow, { backgroundColor: tint ? p.soft : p.card, borderRadius: 24, padding: 20, gap: 12 }, style]}>{children}</View>;
 }
 
 // "solid" = the one main action; "line" = secondary; "ghost" = quiet text link.
@@ -37,7 +37,7 @@ export function Btn({ title, onPress, kind = "solid", busy, disabled, style }: {
       style={({ pressed }) => [
         kind === "ghost"
           ? { minHeight: 44, justifyContent: "center", alignItems: "center", flexDirection: "row", gap: 8 }
-          : { minHeight: 56, paddingHorizontal: 20, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: kind === "solid" ? p.accent : "transparent", borderWidth: kind === "line" ? 1.5 : 0, borderColor: p.accent },
+          : { minHeight: 56, paddingHorizontal: 24, borderRadius: 999, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: kind === "solid" ? p.accent : "transparent", borderWidth: kind === "line" ? 1.5 : 0, borderColor: p.accent },
         (pressed || busy || disabled) && s.pressed,
         style,
       ]}

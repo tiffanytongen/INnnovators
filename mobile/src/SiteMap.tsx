@@ -57,11 +57,11 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
         {conn && <Polyline points={pts(conn)} fill="none" stroke={INK} strokeWidth={3} strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />}
 
         {map.places.map((p) => {
-          if (p.kind === "info") return <Circle key={p.id} cx={p.x} cy={p.y} r={4} fill="#fff" stroke="#9C978C" />;
+          if (p.kind === "info") return highlight ? null : <Circle key={p.id} cx={p.x} cy={p.y} r={4} fill="#fff" stroke="#9C978C" />;
           const big = p.kind === "stage";
           const w = p.label.length * (big ? 5.4 : 4.6) + 10;
           return (
-            <G key={p.id} opacity={highlight && p.id !== highlight.meetup_id ? 0.4 : 1}>
+            <G key={p.id} opacity={highlight && p.id !== highlight.meetup_id ? 0.25 : 1}>
               <Rect x={p.x - w / 2} y={p.y - 8} width={w} height={16} rx={8} fill={big ? "#fff" : "#F5F4F0"} stroke="#C9C4B8" />
               <SvgText x={p.x} y={p.y + 3.5} textAnchor="middle" fontSize={big ? 9 : 8} fontWeight={big ? "700" : "500"} fill={INK}>{p.label}</SvgText>
             </G>
@@ -73,7 +73,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
           const isDest = highlight?.dest_id === o.id;
           const w = o.label.length * 4.6 + 10;
           return (
-            <G key={o.id} opacity={highlight && !relevant.has(o.id) ? 0.4 : 1}>
+            <G key={o.id} opacity={highlight && !relevant.has(o.id) ? 0.3 : 1}>
               <Rect x={o.x - w / 2} y={o.y - 8} width={w} height={16} rx={4} fill={isDest ? INK : closed ? "#FDECEC" : "#fff"} stroke={closed ? RED : "#C9C4B8"} />
               <SvgText x={o.x} y={o.y + 3} textAnchor="middle" fontSize={8} fontWeight="600" fill={isDest ? "#fff" : closed ? RED : INK}>{closed ? `✕ ${o.label}` : o.label}</SvgText>
             </G>
@@ -84,7 +84,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
           const closed = closedGates.includes(g.id);
           const active = highlight?.gate_id === g.id;
           return (
-            <G key={g.id}>
+            <G key={g.id} opacity={highlight && !active && !closed ? 0.45 : 1}>
               <Circle cx={g.x} cy={g.y} r={active ? 12 : 10} fill={closed ? RED : active ? accent : INK} stroke="#fff" strokeWidth={2} />
               <SvgText x={g.x} y={g.y + 4} textAnchor="middle" fontSize={active ? 13 : 11} fontWeight="900" fill="#fff">{closed ? "✕" : g.id.replace("gate_", "")}</SvgText>
               {closed && <SvgText x={g.x + 14} y={g.y + 22} fontSize={8} fontWeight="800" fill={RED}>{`Gate ${g.id.replace("gate_", "")} closed`}</SvgText>}

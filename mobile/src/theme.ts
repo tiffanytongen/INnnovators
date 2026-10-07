@@ -77,7 +77,7 @@ export const T = StyleSheet.create({
   title: { fontFamily: F.displayBold, fontSize: 30, lineHeight: 35, letterSpacing: -0.4 },
   headline: { fontFamily: F.display, fontSize: 22, lineHeight: 28 },
   big: { fontFamily: F.bodySemi, fontSize: 18, lineHeight: 24 },
-  eyebrow: { fontFamily: F.bodySemi, fontSize: 13, lineHeight: 18, letterSpacing: 1.4, textTransform: "uppercase" },
+  eyebrow: { fontFamily: F.bodySemi, fontSize: 15, lineHeight: 20 }, // small sentence-case label, not tracked caps
   body: { fontFamily: F.body, fontSize: 17, lineHeight: 25 },
   bodyStrong: { fontFamily: F.bodySemi, fontSize: 17, lineHeight: 25 },
   small: { fontFamily: F.body, fontSize: 15, lineHeight: 21 },

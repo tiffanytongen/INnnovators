@@ -12,7 +12,7 @@ import { crowdAwarePlan, normalizeBundle, resolveZone, supportedZones, type Bund
 import { normalizeCrowd, type CrowdState } from "../../lib/crowd-model";
 import Signup from "./Signup";
 import { ATTENDEE, PLANB, F, addMin, getJSON, hhmm, s, store } from "./theme";
-import { Btn, Card, Check, Chips, Field, Notice, PalContext, Rule, Txt, usePal } from "./ui";
+import { Btn, Card, Check, Chips, Field, Notice, PalContext, Txt, usePal } from "./ui";
 
 // Types, safe bundle loading and crowd-aware re-ranking live in participant-model.ts (offline-safe, tested).
 // Short, attendee-facing labels for what changed (organizers see the full detail).
@@ -25,6 +25,16 @@ function shortPart(x: ScenarioPart): string {
     case "HEAT": return "Extreme heat";
     case "SET_DELAY": return describePart(x).replace("running ", "");
   }
+}
+
+// Minutes from the phone's clock to an HH:MM leaving time (copes with after-midnight times).
+// Only used when it's close (within 2 hours), so a daytime demo still shows the plain time.
+function minsUntil(time: string, now: Date): number | null {
+  const [h, m] = time.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  let d = (h % 24) * 60 + m - (now.getHours() * 60 + now.getMinutes());
+  if (d < -12 * 60) d += 24 * 60;
+  return d >= -15 && d <= 120 ? d : null;
 }
 
 const HEROES = [
@@ -234,7 +244,11 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const [pickZone, setPickZone] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 20000);
+    return () => clearInterval(id);
+  }, []);
   const name = (id: string | null | undefined) => (id ? bundle.names[id] ?? id.replace(/_/g, " ") : "");
   const steps: Step[] = [plan, ...plan.alternatives];
   const escalating = step >= steps.length;
@@ -261,18 +275,23 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
     st.transport.mode === "train" ? `${st.transport.line} line · ${t.platform} ${st.transport.platform}`
     : st.transport.mode === "pickup" ? `${t.pickupAt} ${name(st.transport.ref_id).replace(/ \(.*/, "")}`
     : name(st.transport.ref_id).replace(/ \(.*/, "") || st.transport.line;
-  const transportLabel = st.transport.mode === "train" ? t.takeTrain : t[st.transport.mode];
+  const transportLabel =
+    st.transport.mode === "train" ? t.takeTrain
+    : kind === "accessible_taxi" && !notEn ? "Accessible taxi"
+    : kind === "accessible" && !notEn ? "Accessible shuttle"
+    : t[st.transport.mode];
+  const countdown = minsUntil(leave, now);
 
   return (
     <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
       {/* 1. What changed */}
-      <View style={{ backgroundColor: p.band, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 28, gap: 6 }}>
+      <View style={{ backgroundColor: p.band, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 26, gap: 4 }}>
         <View style={s.between}>
-          <Txt k="eyebrow" c={isPlanB ? "accent" : "sub"}>{isPlanB ? `Plan B${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}` : "Plan A · Tonight"}</Txt>
-          <Txt k="small" c="sub">{online ? "" : "✈︎ Offline · saved on this phone"}</Txt>
+          <Txt k="eyebrow" c={isPlanB ? "accent" : "sub"}>{isPlanB ? (trigger ? `Updated ${hhmm(trigger.issued_at)}` : "Updated") : t.festivalDay}</Txt>
+          {!online && <Txt k="small" c="sub">Offline · saved on this phone</Txt>}
         </View>
         <Txt k="title">{isPlanB ? t.wayHomeChanged : t.wayHomeTonight}</Txt>
-        <Txt c="sub">{isPlanB ? changeLine : `${bundle.profile.name} · ${t.festivalDay}`}</Txt>
+        <Txt c="sub">{isPlanB ? changeLine : t.allNormalSub}</Txt>
       </View>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 22 }}>
@@ -294,18 +313,22 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
         ) : (
           <>
             {/* 2. What to do now */}
-            <View style={{ gap: 4 }}>
-              <Txt k="eyebrow" c="sub">{step > 0 ? `${t.option} ${step + 1} ${t.of} ${steps.length}` : isPlanB ? t.leaveAt : t.bestTime}</Txt>
-              <Txt k="mega">{leave}</Txt>
+            <View style={{ gap: 2 }}>
+              <Txt k="bodyStrong" c="sub">
+                {step > 0 ? `${t.option} ${step + 1} ${t.of} ${steps.length} · ` : ""}
+                {countdown === null ? (isPlanB ? t.leaveAt : t.bestTime) : countdown <= 0 ? t.leaveNow : t.leaveIn}
+              </Txt>
+              <Txt k="mega">{countdown !== null && countdown > 0 ? `${countdown} ${t.minShort}` : leave}</Txt>
+              {countdown !== null && countdown > 0 ? <Txt k="bodyStrong" c="sub">{t.atTime} {leave}</Txt> : null}
               {st.wait_until && st.wait_at ? <Txt k="bodyStrong">{t.waitAtUntil}: {name(st.wait_at)}</Txt> : null}
-              {!isPlanB && st.wait_until ? <Txt c="sub">{t.waveNote}</Txt> : null}
+              {!isPlanB && step === 0 ? <Txt c="sub">{st.wait_until ? t.waveNote : t.normalNote}</Txt> : null}
               <Txt style={{ marginTop: 10 }}>{st.text_localised}</Txt>
             </View>
 
             {/* Where they're starting from (if they moved), and any re-route because a path got busy */}
             {zones.length > 1 && step === 0 && (
-              <View style={{ gap: 8, marginBottom: -8 }}>
-                <Pressable onPress={() => setPickZone(!pickZone)} style={({ pressed }) => [s.between, { minHeight: 36 }, pressed && s.pressed]}>
+              <View style={{ gap: 8, marginVertical: -8 }}>
+                <Pressable onPress={() => setPickZone(!pickZone)} style={({ pressed }) => [s.between, { minHeight: 44 }, pressed && s.pressed]}>
                   <Txt k="small" c="sub">Starting from {name(zone)}</Txt>
                   <Txt k="smallStrong" c="accent">{pickZone ? "Done" : "Change"}</Txt>
                 </Pressable>
@@ -318,32 +341,37 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
               <Notice tone="ink">Path busy: switched from {name(reroutedFrom).replace(/ \(.*/, "")} to {name(st.route_id).replace(/ \(.*/, "")}.</Notice>
             )}
 
-            {/* 3. The journey, once */}
+            {/* 3. The journey, once: gate → transport on one line */}
             <Card style={{ gap: 0, padding: 0 }}>
-              <View style={[s.row, { padding: 20 }]}>
-                <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: p.ink, alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontFamily: F.displayBold, fontSize: 30, color: "#FFFFFF" }}>{gate}</Text>
+              <View style={{ padding: 20, flexDirection: "row", gap: 16 }}>
+                <View style={{ width: 56, alignItems: "center" }}>
+                  <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: p.ink, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontFamily: F.displayBold, fontSize: 30, color: "#FFFFFF" }}>{gate}</Text>
+                  </View>
+                  <View style={{ width: 2, flex: 1, minHeight: 28, marginVertical: 6, borderRadius: 1, backgroundColor: p.line }} />
+                  <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 4, borderColor: p.accent, backgroundColor: p.card, marginBottom: 14 }} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Txt k="headline">{t.gate} {gate}</Txt>
-                  {walk !== null && (
-                    <Txt k="small" c="sub">
-                      {walk} {t.minWalk}{covered ? ` · ${t.coveredWord}` : ""}{stepFree ? ` · ${t.stepFreeWord}` : ""}{pathLevel === "heavy" ? " · busy path" : pathLevel === "moderate" ? " · some crowding" : ""}
-                    </Txt>
-                  )}
+                <View style={{ flex: 1, justifyContent: "space-between", gap: 20 }}>
+                  <View style={{ paddingTop: 4 }}>
+                    <Txt k="headline">{t.gate} {gate}</Txt>
+                    {walk !== null && (
+                      <Txt k="small" c="sub">
+                        {walk} {t.minWalk}{covered ? ` · ${t.coveredWord}` : ""}{stepFree ? ` · ${t.stepFreeWord}` : ""}{pathLevel === "heavy" ? " · busy path" : pathLevel === "moderate" ? " · some crowding" : ""}
+                      </Txt>
+                    )}
+                  </View>
+                  <View style={s.between}>
+                    <View style={{ flex: 1 }}>
+                      <Txt k="small" c="sub">{transportLabel}</Txt>
+                      <Txt k="big">{transportTitle}</Txt>
+                    </View>
+                    {st.transport.depart ? <Txt k="huge">{st.transport.depart}</Txt> : null}
+                  </View>
                 </View>
-              </View>
-              <Text style={{ fontFamily: F.body, fontSize: 18, color: p.sub, marginLeft: 44, marginTop: -10, marginBottom: -6 }}>↓</Text>
-              <View style={[s.row, { padding: 20, paddingTop: 12 }]}>
-                <View style={{ flex: 1 }}>
-                  <Txt k="small" c="sub">{transportLabel}</Txt>
-                  <Txt k="big">{transportTitle}</Txt>
-                </View>
-                {st.transport.depart ? <Txt k="huge">{st.transport.depart}</Txt> : null}
               </View>
               {(st.transport.depart && atStop) || (st.group_meetup && bundle.profile.group) || st.volunteer_escort || st.notify_contact ? (
-                <View style={{ backgroundColor: p.soft, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, paddingHorizontal: 20, paddingVertical: 14, gap: 4 }}>
-                  {st.transport.depart && atStop ? <Txt k="small">{t.beThereBy} {atStop}</Txt> : null}
+                <View style={{ backgroundColor: p.soft, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingHorizontal: 20, paddingVertical: 14, gap: 4 }}>
+                  {st.transport.depart && atStop ? <Txt k="small">{t.atStop} {atStop}</Txt> : null}
                   {st.group_meetup && bundle.profile.group ? <Txt k="small">{t.ifSeparated}: {name(st.group_meetup)}</Txt> : null}
                   {st.volunteer_escort ? <Txt k="small">{t.volunteerShort}</Txt> : null}
                   {st.notify_contact ? <Txt k="small">{t.contactNotified}</Txt> : null}
@@ -353,25 +381,26 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
 
             <Btn title={showRoute ? t.hideRoute : t.startRoute} onPress={() => setShowRoute(!showRoute)} />
             {showRoute && bundle.map && (
-              <View style={{ borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: p.line }}>
+              <View style={{ borderRadius: 24, overflow: "hidden", borderWidth: 1, borderColor: p.line }}>
                 <SiteMap
                   map={bundle.map}
                   closedGates={closed?.gates}
                   closedPlaces={closed?.places}
                   storm={closed?.storm}
                   highlight={{ route_id: st.route_id, gate_id: st.gate_id, dest_id: dest, meetup_id: bundle.profile.group ? st.group_meetup : null }}
+                  accent={p.accent}
                 />
               </View>
             )}
 
-            {/* 4. Why, and other options */}
-            <View style={{ gap: 12 }}>
-              <Pressable onPress={() => setShowWhy(!showWhy)} style={({ pressed }) => [s.between, { minHeight: 44 }, pressed && s.pressed]}>
+            {/* 4. Why, and other options: quiet, below the action */}
+            <View>
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWhy }} onPress={() => setShowWhy(!showWhy)} style={({ pressed }) => [s.between, { minHeight: 52, borderTopWidth: 1, borderTopColor: p.line }, pressed && s.pressed]}>
                 <Txt k="bodyStrong">{t.whyPlan}</Txt>
                 <Txt k="headline" c="sub">{showWhy ? "−" : "→"}</Txt>
               </Pressable>
               {showWhy && (
-                <View style={{ gap: 8 }}>
+                <View style={{ gap: 8, paddingBottom: 16 }}>
                   {stepFree && <Check>{t.ckStepFree}</Check>}
                   {covered && <Check>{t.ckCovered}</Check>}
                   {(closed?.gates ?? []).filter((g) => g !== st.gate_id).map((g) => (
@@ -383,17 +412,13 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
                   <Txt c="sub" style={{ marginTop: 4 }}>{st.reason_localised}</Txt>
                   {notEn && <Txt k="small" c="sub">{st.action}. {st.reason}</Txt>}
                   {plan.journey?.main_tradeoff && step === 0 ? <Txt k="small" c="sub">{plan.journey.main_tradeoff}</Txt> : null}
-                  <Btn kind="ghost" title={showDetails ? "Hide details" : t.details} onPress={() => setShowDetails(!showDetails)} style={{ alignSelf: "flex-start" }} />
-                  {showDetails && (
-                    <Txt k="small" c="sub">
-                      {plan.source}{plan.weather ? ` · Forecast: ${plan.weather.source}${plan.weather.status !== "available" ? " (unavailable)" : ""}` : ""}{plan.approved_by ? ` · Approved by ${plan.approved_by}` : ""}
-                    </Txt>
-                  )}
                 </View>
               )}
-              <Rule />
-              <Btn kind="line" title={t.otherOption} onPress={() => { setStep(step + 1); setShowRoute(false); setShowWhy(false); }} />
-              {step > 0 && <Btn kind="ghost" title={t.backToFirst} onPress={() => setStep(0)} />}
+              <Pressable accessibilityRole="button" onPress={() => { setStep(step + 1); setShowRoute(false); setShowWhy(false); }} style={({ pressed }) => [s.between, { minHeight: 52, borderTopWidth: 1, borderBottomWidth: 1, borderColor: p.line }, pressed && s.pressed]}>
+                <Txt k="bodyStrong">{t.otherOption}</Txt>
+                <Txt k="headline" c="sub">→</Txt>
+              </Pressable>
+              {step > 0 && <Btn kind="ghost" title={t.backToFirst} onPress={() => setStep(0)} style={{ alignSelf: "flex-start" }} />}
             </View>
           </>
         )}

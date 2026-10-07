@@ -5,7 +5,7 @@ import { allocate } from "./allocate";
 import { mapPayload } from "./map";
 import { parseScenario, pickCachedScenario, partToCode, describePart } from "./scenario";
 import { readPlanFile } from "./generate";
-import { readFixes } from "./premortem";
+import { groupStuck, readFixes } from "./premortem";
 import type { Plan } from "./plan";
 
 // What each person is told = their first allocated chunk (gate, transport, wave). Compare scenario vs normal night.
@@ -80,6 +80,7 @@ export function buildPreview(code: string) {
     total_people: total,
     affected_people: affected.reduce((s, p) => s + p.weight, 0),
     no_plan_people: now.stuck.reduce((n, x) => n + x.people, 0), // same crowd allocation as the pre-mortem
+    no_plan_groups: groupStuck(now.stuck).map(({ label, people }) => ({ label, people })),
     waited_people: now.waited,
     gate_load: gateLoad,
     by_part: byPart,

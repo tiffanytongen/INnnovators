@@ -25,9 +25,8 @@ function groupOf(p: Profile) {
   return { key: `${need}|${p.home.mode}`, label: `${need} ${home}` };
 }
 
-export function runScenario(scenario: string, profiles: Profile[], extra: Service[]): ScenarioResult {
-  // Same crowd allocation the plans use: gate places per wave + limited seats, most constrained people first.
-  const { stuck } = allocate(scenario, profiles, extra);
+/** Who is left without a way home, in plain-language groups (largest first). Shared with the organizer's live triage. */
+export function groupStuck(stuck: ReturnType<typeof allocate>["stuck"]): Group[] {
   const groups = new Map<string, Group>();
   for (const s of stuck) {
     const g = groupOf(s.p);
@@ -36,7 +35,13 @@ export function runScenario(scenario: string, profiles: Profile[], extra: Servic
     cur.profiles += 1;
     groups.set(g.key, cur);
   }
-  return { scenario, no_plan: stuck.reduce((n, s) => n + s.people, 0), groups: [...groups.values()].sort((a, b) => b.people - a.people) };
+  return [...groups.values()].sort((a, b) => b.people - a.people);
+}
+
+export function runScenario(scenario: string, profiles: Profile[], extra: Service[]): ScenarioResult {
+  // Same crowd allocation the plans use: gate places per wave + limited seats, most constrained people first.
+  const { stuck } = allocate(scenario, profiles, extra);
+  return { scenario, no_plan: stuck.reduce((n, s) => n + s.people, 0), groups: groupStuck(stuck) };
 }
 
 // What's actually binding, in plain words, and one contingency we've verified clears it.

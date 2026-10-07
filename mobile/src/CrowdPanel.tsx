@@ -62,7 +62,6 @@ export default function CrowdPanel({ server }: { server: string }) {
 
   return (
     <View style={{ gap: 4 }}>
-      <Txt k="headline">Paths right now</Txt>
       <Txt k="small" c="sub">Phones avoid busy paths and skip closed ones automatically.</Txt>
       {PATHS.map(([id, label]) => {
         const st = crowd[id];

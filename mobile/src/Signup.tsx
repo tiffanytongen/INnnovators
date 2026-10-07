@@ -44,8 +44,8 @@ export default function Signup({ server, onDone, onCancel }: { server: string; o
       <View style={{ backgroundColor: p.band, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 28, gap: 6 }}>
         <Btn kind="ghost" title="‹ Back" onPress={onCancel} style={{ alignSelf: "flex-start", minHeight: 36 }} />
         <Txt k="eyebrow" c="sub">Ticket checkout · step 3 of 4</Txt>
-        <Txt k="title">Your journey home</Txt>
-        <Txt c="sub">3 optional questions. Plan B uses your ticket details plus these to prepare safer alternatives if conditions change.</Txt>
+        <Txt k="title">Getting home after Fieldday</Txt>
+        <Txt c="sub">3 optional questions at checkout. Plan B combines your ticket details with these to plan your way home, and a safer one if conditions change. No extra app.</Txt>
       </View>
 
       <View style={{ padding: 20, gap: 22 }}>
@@ -73,7 +73,7 @@ export default function Signup({ server, onDone, onCancel }: { server: string; o
         </View>
 
         <View style={{ gap: 4 }}>
-          <Txt k="bodyStrong">3. Access</Txt>
+          <Txt k="bodyStrong">3. Anything that affects how you travel?</Txt>
           <Toggle label="I need step-free routes" on={f.step_free} onPress={() => set("step_free", !f.step_free)} />
           <View style={[s.row, { marginTop: 10 }]}>
             <Txt style={{ flex: 1 }}>Need to be on your way by (optional)</Txt>

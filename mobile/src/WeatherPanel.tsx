@@ -39,7 +39,6 @@ export default function WeatherPanel({ server }: { server: string }) {
 
   return (
     <View style={{ gap: 8 }}>
-      <Txt k="headline">Weather</Txt>
       <Txt c="sub">{summary}</Txt>
       <Txt k="small" c="sub">{forecast?.source ?? "Meteosource"} · live forecast for the exit window</Txt>
       <Btn
