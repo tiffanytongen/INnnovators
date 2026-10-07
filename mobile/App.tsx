@@ -4,16 +4,25 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
+import { BigShoulders_700Bold, BigShoulders_800ExtraBold, BigShoulders_900Black } from "@expo-google-fonts/big-shoulders";
+import { FamiljenGrotesk_400Regular, FamiljenGrotesk_500Medium, FamiljenGrotesk_600SemiBold, FamiljenGrotesk_700Bold } from "@expo-google-fonts/familjen-grotesk";
 import Participant from "./src/Participant";
 import Organizer from "./src/Organizer";
-import { C, s, defaultServer, store } from "./src/theme";
+import { ALERT, F, NIGHT, defaultServer, store, type Pal } from "./src/theme";
+import { PalContext } from "./src/ui";
 
 type Mode = "participant" | "organizer";
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    BigShoulders_700Bold, BigShoulders_800ExtraBold, BigShoulders_900Black,
+    FamiljenGrotesk_400Regular, FamiljenGrotesk_500Medium, FamiljenGrotesk_600SemiBold, FamiljenGrotesk_700Bold,
+  });
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<Mode>("participant");
   const [server, setServer] = useState(defaultServer());
+  const [alert, setAlert] = useState(false); // participant is on Plan B → whole app goes yellow
 
   useEffect(() => {
     (async () => {
@@ -33,21 +42,36 @@ export default function App() {
     store.set("planb:server", v);
   };
 
+  const pal: Pal = mode === "participant" && alert ? ALERT : NIGHT;
+
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <SafeAreaView style={s.screen} edges={["top", "bottom"]}>
-        <View style={{ flexDirection: "row", margin: 12, marginBottom: 4, backgroundColor: "#EAE7E0", borderRadius: 999, padding: 4 }}>
-          {(["participant", "organizer"] as Mode[]).map((m) => (
-            <Pressable key={m} onPress={() => pick(m)} style={{ flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: "center", backgroundColor: mode === m ? C.card : "transparent" }}>
-              <Text style={{ fontSize: 15, fontWeight: mode === m ? "800" : "600", color: mode === m ? C.text : C.muted }}>
-                {m === "participant" ? "🎟 Participant" : "🦺 Organizer"}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        {!ready ? null : mode === "participant" ? <Participant server={server} onServer={changeServer} /> : <Organizer server={server} />}
-      </SafeAreaView>
+      <PalContext.Provider value={pal}>
+        <StatusBar style={pal.name === "alert" ? "dark" : "light"} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: pal.bg }} edges={["top", "bottom"]}>
+          {/* Role switch: wordmark left, two plain tabs right */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, borderBottomWidth: 1, borderBottomColor: pal.line }}>
+            <Text style={{ fontFamily: fontsLoaded ? F.display : undefined, fontSize: 22, color: pal.ink, letterSpacing: 0.5 }}>PLAN B</Text>
+            <View style={{ flexDirection: "row", gap: 18 }}>
+              {(["participant", "organizer"] as Mode[]).map((m) => {
+                const on = mode === m;
+                return (
+                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 44, justifyContent: "center", borderBottomWidth: 3, borderBottomColor: on ? (pal.name === "alert" ? pal.ink : pal.accent) : "transparent" }}>
+                    <Text style={{ fontFamily: fontsLoaded ? F.bodySemi : undefined, fontSize: 15, color: on ? pal.ink : pal.sub }}>
+                      {m === "participant" ? "Participant" : "Organizer"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          {!ready || !fontsLoaded ? null : mode === "participant" ? (
+            <Participant server={server} onServer={changeServer} onAlert={setAlert} />
+          ) : (
+            <Organizer server={server} />
+          )}
+        </SafeAreaView>
+      </PalContext.Provider>
     </SafeAreaProvider>
   );
 }

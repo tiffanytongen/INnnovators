@@ -1,13 +1,15 @@
-// Participant side: whose phone → calm home screen → full plan. Works offline once loaded.
+// Participant side: whose phone → home screen → full plan. Works offline once loaded.
+// Look: dark by default; when Plan B is live the whole app flips to safety yellow (see App.tsx / theme.ts).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, Pressable, ScrollView, Text, TextInput, Vibration, View } from "react-native";
+import { Linking, Pressable, ScrollView, Vibration, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { pickCachedScenario } from "../../lib/scenario";
 import { verifyTrigger, type Trigger } from "../../lib/trigger";
 import { strings } from "../../lib/i18n";
 import SiteMap, { type MapData } from "./SiteMap";
 import Signup from "./Signup";
-import { C, s, getJSON, store, hhmm } from "./theme";
+import { getJSON, store, hhmm, s } from "./theme";
+import { Btn, Field, Label, Notice, Txt, usePal } from "./ui";
 
 // ---- types (same shape as lib/plan.ts, kept local so the app doesn't pull in server code) ----
 type Transport = { mode: "train" | "shuttle" | "taxi" | "pickup"; ref_id: string; line: string; platform: string; depart: string | null };
@@ -34,7 +36,7 @@ const HEROES = [
   { id: "jake_16", name: "Jake", desc: "16 · first festival · parent pickup" },
 ];
 
-export default function Participant({ server, onServer }: { server: string; onServer: (v: string) => void }) {
+export default function Participant({ server, onServer, onAlert }: { server: string; onServer: (v: string) => void; onAlert: (on: boolean) => void }) {
   const [ready, setReady] = useState(false);
   const [personId, setPersonId] = useState<string | null>(null);
   const [signingUp, setSigningUp] = useState(false);
@@ -44,6 +46,10 @@ export default function Participant({ server, onServer }: { server: string; onSe
       setReady(true);
     });
   }, []);
+  useEffect(() => {
+    if (!personId) onAlert(false);
+  }, [personId, onAlert]);
+  useEffect(() => () => onAlert(false), [onAlert]); // leaving the participant side → back to night
   const choose = (id: string | null) => {
     setPersonId(id);
     if (id) store.set("planb:person", id);
@@ -51,11 +57,12 @@ export default function Participant({ server, onServer }: { server: string; onSe
   };
   if (!ready) return null;
   if (signingUp) return <Signup server={server} onCancel={() => setSigningUp(false)} onDone={(id) => { setSigningUp(false); choose(id); }} />;
-  return personId ? <PersonApp server={server} personId={personId} onSwitch={() => choose(null)} /> : <PickScreen server={server} onServer={onServer} onPick={choose} onSignup={() => setSigningUp(true)} />;
+  return personId ? <PersonApp server={server} personId={personId} onSwitch={() => choose(null)} onAlert={onAlert} /> : <PickScreen server={server} onServer={onServer} onPick={choose} onSignup={() => setSigningUp(true)} />;
 }
 
 // ---------- demo: choose whose phone this is ----------
 function PickScreen({ server, onServer, onPick, onSignup }: { server: string; onServer: (v: string) => void; onPick: (id: string) => void; onSignup: () => void }) {
+  const p = usePal();
   const [other, setOther] = useState("");
   const [status, setStatus] = useState<"checking" | "ok" | "fail">("checking");
   useEffect(() => {
@@ -64,43 +71,48 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
   }, [server]);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 14 }}>
-      <Text style={s.brand}>Plan B</Text>
-      <Text style={[s.muted, { fontSize: 17 }]}>Plan A is your day. Plan B is what happens when it changes.</Text>
-      <Pressable onPress={onSignup} style={({ pressed }) => [s.alertCard, { marginTop: 12 }, pressed && s.pressed]}>
-        <Text style={s.alertTitle}>✍️ New here? Sign up in 30 seconds</Text>
-        <Text style={[s.body, { color: C.text }]}>Tell us how you're getting home and we'll make your plan.</Text>
-      </Pressable>
-      <Text style={[s.sectionLabel, { marginTop: 18 }]}>Or open an existing attendee (demo)</Text>
-      {HEROES.map((h) => (
-        <Pressable key={h.id} onPress={() => onPick(h.id)} style={({ pressed }) => [s.card, s.row, pressed && s.pressed]}>
-          <View style={s.avatar}><Text style={s.avatarText}>{h.name[0]}</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.cardTitle}>{h.name}</Text>
-            <Text style={s.muted}>{h.desc}</Text>
-          </View>
-          <Text style={s.chevron}>›</Text>
-        </Pressable>
-      ))}
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        <TextInput value={other} onChangeText={setOther} placeholder="Someone else? Enter their ID" placeholderTextColor="#9A968E" autoCapitalize="none" style={[s.input, { flex: 1 }]} />
-        <Pressable onPress={() => other.trim() && onPick(other.trim())} style={s.secondaryButton}>
-          <Text style={s.secondaryButtonText}>Open</Text>
-        </Pressable>
+    <ScrollView contentContainerStyle={{ paddingVertical: 28, gap: 22 }}>
+      <View style={[s.gutter, { gap: 2 }]}>
+        <Txt k="title" style={{ fontSize: 54, lineHeight: 54 }}>Plan A is your day.</Txt>
+        <Txt k="title" c="accent" style={{ fontSize: 54, lineHeight: 54 }}>Plan B is what happens when it changes.</Txt>
       </View>
-      <View style={{ marginTop: 24, gap: 6 }}>
-        <Text style={s.sectionLabel}>Connection to the Plan B server</Text>
-        <TextInput value={server} onChangeText={onServer} autoCapitalize="none" autoCorrect={false} style={s.input} />
-        <Text style={[s.muted, status === "ok" && { color: C.green }, status === "fail" && { color: C.red }]}>
-          {status === "ok" ? "✓ Connected" : status === "fail" ? "✗ Can't connect. Is the laptop server running, on the same Wi-Fi?" : "Checking…"}
-        </Text>
+
+      <View style={s.gutter}>
+        <Btn title="New here? Sign up" onPress={onSignup} />
+      </View>
+
+      <View style={{ gap: 4 }}>
+        <Label style={s.gutter}>Open an attendee (demo)</Label>
+        {HEROES.map((h) => (
+          <Pressable key={h.id} accessibilityRole="button" onPress={() => onPick(h.id)} style={({ pressed }) => [s.gutter, { flexDirection: "row", alignItems: "center", gap: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: p.line }, pressed && { backgroundColor: p.raised }]}>
+            <Txt k="huge" c="accent" style={{ width: 60 }}>{h.name[0]}</Txt>
+            <View style={{ flex: 1 }}>
+              <Txt k="big">{h.name}</Txt>
+              <Txt k="small" c="sub">{h.desc}</Txt>
+            </View>
+            <Txt k="big" c="sub">→</Txt>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={[s.gutter, { flexDirection: "row", gap: 8 }]}>
+        <Field value={other} onChangeText={setOther} placeholder="Someone else? Their ID" autoCapitalize="none" style={{ flex: 1 }} />
+        <Btn kind="line" title="Open" right="" onPress={() => other.trim() && onPick(other.trim())} style={{ minHeight: 50 }} />
+      </View>
+
+      <View style={[s.gutter, { gap: 8, marginTop: 12 }]}>
+        <Label>Plan B server</Label>
+        <Field value={server} onChangeText={onServer} autoCapitalize="none" autoCorrect={false} />
+        <Txt k="smallStrong" c={status === "ok" ? "ok" : status === "fail" ? "danger" : "sub"}>
+          {status === "ok" ? "● Connected" : status === "fail" ? "✕ Can't connect. Is the laptop server running, on the same Wi-Fi?" : "Checking…"}
+        </Txt>
       </View>
     </ScrollView>
   );
 }
 
 // ---------- one attendee: data + home / plan screens ----------
-function PersonApp({ server, personId, onSwitch }: { server: string; personId: string; onSwitch: () => void }) {
+function PersonApp({ server, personId, onSwitch, onAlert }: { server: string; personId: string; onSwitch: () => void; onAlert: (on: boolean) => void }) {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [trigger, setTrigger] = useState<Trigger | null>(null);
   const [online, setOnline] = useState(true);
@@ -162,11 +174,16 @@ function PersonApp({ server, personId, onSwitch }: { server: string; personId: s
     return { plan: bundle.plans[key] ?? bundle.plans.NORMAL, key, exact: exact || code === "NORMAL", isPlanB: code !== "NORMAL" };
   }, [bundle, trigger]);
 
+  // The whole app turns yellow while this person is on Plan B.
+  useEffect(() => {
+    onAlert(!!current?.isPlanB);
+  }, [current?.isPlanB, onAlert]);
+
   if (!bundle || !current?.plan)
     return (
-      <View style={{ padding: 24, gap: 16 }}>
-        <Text style={s.h2}>{error || (bundle ? "Your plan is still being prepared." : "Loading your plan…")}</Text>
-        <Pressable onPress={onSwitch}><Text style={s.link}>Choose someone else</Text></Pressable>
+      <View style={{ padding: 20, gap: 16 }}>
+        <Txt k="headline">{error || (bundle ? "Your plan is still being prepared." : "Loading your plan…")}</Txt>
+        <Btn kind="ghost" title="Choose someone else" onPress={onSwitch} />
       </View>
     );
 
@@ -184,11 +201,13 @@ type ScreenProps = {
   t: Strings; name: (id: string | null) => string; server: string;
 };
 
+// Edge-to-edge map, ruled top and bottom like a printed insert.
 function RouteMap({ bundle, st, scenarioKey }: { bundle: Bundle; st: Step; scenarioKey: string }) {
+  const p = usePal();
   if (!bundle.map) return null;
   const closed = bundle.closed?.[scenarioKey];
   return (
-    <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: C.line }}>
+    <View style={{ borderTopWidth: 1, borderBottomWidth: 1, borderColor: p.line }}>
       <SiteMap
         map={bundle.map}
         closedGates={closed?.gates}
@@ -205,73 +224,97 @@ function transportLine(st: Step, t: Strings, name: (id: string | null) => string
   if (tr.mode === "train") return `${tr.line} line · ${t.platform} ${tr.platform}`;
   return name(tr.ref_id) || tr.line;
 }
+const gateLetter = (id: string) => id.replace("gate_", "");
 
-// ---------- HOME: calm overview, plan one tap away ----------
-function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, name, server, onOpen, onSwitch }: ScreenProps & { onOpen: () => void; onSwitch: () => void }) {
+// The "departure board": a huge gate letter, where it leads, and the time.
+function Board({ st, t, name }: { st: Step; t: Strings; name: (id: string | null) => string }) {
   return (
-    <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 32 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <View>
-          <Text style={s.hello}>{t.hi} {bundle.profile.name} 👋</Text>
-          <Text style={s.muted}>{t.festivalDay}</Text>
-        </View>
-        <View style={[s.signalPill, !online && { backgroundColor: "#EDEBE6" }]}>
-          <Text style={[s.signalPillText, !online && { color: C.text }]}>{online ? "● Online" : "✈︎ Offline"}</Text>
-        </View>
+    <View style={[s.gutter, { flexDirection: "row", alignItems: "flex-end", gap: 14 }]}>
+      <Txt k="mega">{gateLetter(st.gate_id)}</Txt>
+      <View style={{ flex: 1, paddingBottom: 14, gap: 4 }}>
+        <Txt k="label" c="sub">{t.gate} · {t[st.transport.mode]}</Txt>
+        <Txt k="bodyStrong">{name(st.gate_id)}</Txt>
+        <Txt k="small" c="sub">{transportLine(st, t, name)}</Txt>
+        {st.transport.depart ? <Txt k="huge" style={{ marginTop: 4 }}>{st.transport.depart}</Txt> : null}
       </View>
+    </View>
+  );
+}
 
-      {/* Status */}
-      {isPlanB ? (
-        <Pressable onPress={onOpen} style={({ pressed }) => [s.alertCard, pressed && s.pressed]}>
-          <Text style={s.alertTitle}>⚠︎ {t.changed}{trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}</Text>
-          <Text style={s.alertBody}>{plan.text_localised}</Text>
-          <Text style={s.alertCta}>{t.tapForNext} ›</Text>
-        </Pressable>
-      ) : (
-        <View style={[s.card, { backgroundColor: C.greenBg, borderColor: "#CFEBD8" }]}>
-          <Text style={[s.cardTitle, { color: C.green }]}>✓ {t.allNormal}</Text>
-          <Text style={s.muted}>{t.allNormalSub}</Text>
-        </View>
-      )}
+function SignalTag({ online }: { online: boolean }) {
+  return <Txt k="label" c={online ? "ok" : "sub"}>{online ? "● Online" : "Offline · saved"}</Txt>;
+}
 
-      {/* Way home */}
-      <Pressable onPress={onOpen} style={({ pressed }) => [s.card, pressed && s.pressed]}>
-        <Text style={s.sectionLabel}>{t.wayHome}</Text>
-        <View style={[s.row, { marginTop: 10 }]}>
-          <View style={s.gateBadge}><Text style={s.gateLetter}>{plan.gate_id.replace("gate_", "")}</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.cardTitle}>{name(plan.gate_id)}</Text>
-            <Text style={s.body}>{transportLine(plan, t, name)}</Text>
+// ---------- HOME ----------
+function HomeScreen({ bundle, plan, scenarioKey, isPlanB, trigger, online, t, name, server, onOpen, onSwitch }: ScreenProps & { onOpen: () => void; onSwitch: () => void }) {
+  const p = usePal();
+  const was = bundle.plans.NORMAL;
+  const wasChanged = isPlanB && was && (was.gate_id !== plan.gate_id || was.transport.depart !== plan.transport.depart);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 20, paddingBottom: 28, gap: 22 }}>
+        <View style={[s.gutter, s.between]}>
+          <View style={{ flexShrink: 1 }}>
+            <Txt k="title">{t.hi} {bundle.profile.name}</Txt>
+            <Txt k="label" c="sub" style={{ marginTop: 6 }}>{t.festivalDay}</Txt>
           </View>
-          {plan.transport.depart ? <Text style={s.time}>{plan.transport.depart}</Text> : null}
+          <SignalTag online={online} />
         </View>
-        <View style={{ marginTop: 12 }}><RouteMap bundle={bundle} st={plan} scenarioKey={scenarioKey} /></View>
-        <Text style={[s.link, { marginTop: 12 }]}>{t.seePlan} ›</Text>
-      </Pressable>
 
-      {/* Meet-up */}
-      {plan.group_meetup && bundle.profile.group && (
-        <View style={s.card}>
-          <Text style={s.sectionLabel}>{t.ifSeparated}</Text>
-          <Text style={[s.cardTitle, { marginTop: 6 }]}>📍 {name(plan.group_meetup)}</Text>
+        {/* Status: on Plan B the screen is already yellow, so this is just the words, big. */}
+        <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [s.gutter, { gap: 10 }, pressed && s.pressed]}>
+          {isPlanB ? (
+            <>
+              <Label>{`${t.changed}${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}`}</Label>
+              <Txt k="headline">{plan.text_localised}</Txt>
+              {wasChanged ? (
+                <Txt k="smallStrong" c="sub" style={{ textDecorationLine: "line-through" }}>
+                  Plan A: Gate {gateLetter(was.gate_id)}{was.transport.depart ? ` · ${was.transport.depart}` : ""} · {t[was.transport.mode]}
+                </Txt>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Label>{t.planA}</Label>
+              <Txt k="headline">{t.allNormal}.</Txt>
+              <Txt c="sub">{t.allNormalSub}</Txt>
+            </>
+          )}
+        </Pressable>
+
+        <View style={{ gap: 14 }}>
+          <Label style={s.gutter}>{t.wayHome}</Label>
+          <Board st={plan} t={t} name={name} />
+          <RouteMap bundle={bundle} st={plan} scenarioKey={scenarioKey} />
         </View>
-      )}
 
-      <Text style={[s.muted, { textAlign: "center", marginTop: 6 }]}>✓ {t.savedOnPhone}</Text>
-      <View style={{ flexDirection: "row", justifyContent: "center", gap: 18 }}>
-        {online && (
-          <Pressable onPress={() => Linking.openURL(`${server}/api/wallpaper/${bundle.profile.id}`)}>
-            <Text style={s.smallLink}>{t.wallpaper}</Text>
-          </Pressable>
+        {plan.group_meetup && bundle.profile.group && (
+          <View style={[s.gutter, { gap: 6 }]}>
+            <Label>{t.ifSeparated}</Label>
+            <Txt k="big">{name(plan.group_meetup)}</Txt>
+          </View>
         )}
-        <Pressable onPress={onSwitch}><Text style={s.smallLink}>Switch person (demo)</Text></Pressable>
+
+        <View style={[s.gutter, { gap: 4 }]}>
+          <Txt k="small" c="sub">✓ {t.savedOnPhone}</Txt>
+          <View style={{ flexDirection: "row", gap: 18 }}>
+            {online && <Btn kind="ghost" title={t.wallpaper} onPress={() => Linking.openURL(`${server}/api/wallpaper/${bundle.profile.id}`)} style={{ minHeight: 44, paddingHorizontal: 0 }} />}
+            <Btn kind="ghost" title="Switch person (demo)" onPress={onSwitch} style={{ minHeight: 44, paddingHorizontal: 0 }} />
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={{ padding: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: p.line, backgroundColor: p.bg }}>
+        <Btn title={isPlanB ? t.tapForNext : t.seePlan} onPress={onOpen} />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 // ---------- PLAN: one action, key details, why, "doesn't work for me" ----------
 function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, t, name, onBack }: ScreenProps & { onBack: () => void }) {
+  const p = usePal();
   const [step, setStep] = useState(0);
   const steps: Step[] = [plan, ...plan.alternatives];
   const escalating = step >= steps.length;
@@ -280,78 +323,71 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={s.topBar}>
-        <Pressable onPress={onBack} hitSlop={12}><Text style={s.back}>‹ {t.home}</Text></Pressable>
-        <View style={[s.tag, { backgroundColor: isPlanB ? C.alert : C.greenBg }]}>
-          <Text style={[s.tagText, { color: isPlanB ? C.text : C.green }]}>{isPlanB ? t.planB : t.planA}{isPlanB && trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}</Text>
+      <View style={[s.bar, { borderBottomWidth: 1, borderBottomColor: p.line }]}>
+        <Btn kind="ghost" title={`← ${t.home}`} onPress={onBack} style={{ paddingHorizontal: 0, minHeight: 44 }} />
+        <View style={{ borderWidth: 1.5, borderColor: p.ink, borderRadius: 3, paddingHorizontal: 8, paddingVertical: 3 }}>
+          <Txt k="label">{isPlanB ? t.planB : t.planA}{isPlanB && trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}</Txt>
         </View>
       </View>
-      {!online && <Text style={s.offlineBar}>✈︎ {t.offline}</Text>}
+      {!online && <Txt k="smallStrong" style={{ paddingHorizontal: 20, paddingVertical: 8, backgroundColor: p.raised }}>{t.offline}</Txt>}
 
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 24 }}>
-        {plan.needs_human && <Text style={s.redBox}>{t.needsHuman}</Text>}
-        {!exact && <Text style={s.noteBox}>{t.closestPlan}</Text>}
+      <ScrollView contentContainerStyle={{ paddingTop: 20, paddingBottom: 24, gap: 20 }}>
+        {(plan.needs_human || !exact) && (
+          <View style={[s.gutter, { gap: 10 }]}>
+            {plan.needs_human && <Notice>{t.needsHuman}</Notice>}
+            {!exact && <Notice tone="ink">{t.closestPlan}</Notice>}
+          </View>
+        )}
 
         {escalating ? (
-          <View style={{ gap: 14 }}>
-            <Text style={s.sectionLabel}>{t.escalateTitle}</Text>
-            <Text style={s.h1}>{plan.escalate_text_localised}</Text>
-            {notEn && <Text style={s.sub}>Go to the nearest info tent or show this screen to any volunteer.</Text>}
-            <View style={[s.card, { borderColor: C.text, borderWidth: 2 }]}>
-              <Text style={s.cardTitle}>{t.showVolunteer}</Text>
-              <Text style={s.body}>Name: {bundle.profile.name} · ID {bundle.profile.id}</Text>
-              <Text style={s.body}>Planned exit: {name(plan.gate_id)} → {plan.transport.line} {plan.transport.depart ?? ""}</Text>
+          <View style={[s.gutter, { gap: 16 }]}>
+            <Label>{t.escalateTitle}</Label>
+            <Txt k="headline">{plan.escalate_text_localised}</Txt>
+            {notEn && <Txt c="sub">Go to the nearest info tent or show this screen to any volunteer.</Txt>}
+            <View style={{ borderWidth: 2, borderColor: p.ink, borderRadius: 4, padding: 16, gap: 6 }}>
+              <Txt k="big">{t.showVolunteer}</Txt>
+              <Txt>Name: {bundle.profile.name} · ID {bundle.profile.id}</Txt>
+              <Txt>Planned exit: {name(plan.gate_id)} → {plan.transport.line} {plan.transport.depart ?? ""}</Txt>
             </View>
           </View>
         ) : (
           <>
-            <View>
-              <Text style={s.sectionLabel}>{t.next}{step > 0 ? ` · ${t.option} ${step + 1} ${t.of} ${steps.length}` : ""}</Text>
-              <Text style={s.h1}>{st.text_localised}</Text>
-              {notEn && <Text style={s.sub}>{st.action}</Text>}
+            <View style={[s.gutter, { gap: 10 }]}>
+              <Label>{`${t.next}${step > 0 ? ` · ${t.option} ${step + 1} ${t.of} ${steps.length}` : ""}`}</Label>
+              <Txt k="headline">{st.text_localised}</Txt>
+              {notEn && <Txt c="sub">{st.action}</Txt>}
             </View>
 
             {/* Fixed fields from the data, never free-translated; English so a volunteer can read them. */}
-            <View style={[s.card, { gap: 14 }]}>
-              <View style={s.row}>
-                <View style={s.gateBadge}><Text style={s.gateLetter}>{st.gate_id.replace("gate_", "")}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.muted}>{t.gate}</Text>
-                  <Text style={s.cardTitle}>{name(st.gate_id)}</Text>
-                  <Text style={s.muted}>{name(st.route_id)}</Text>
-                </View>
-              </View>
-              <Detail label={t[st.transport.mode]} value={transportLine(st, t, name)} time={st.transport.depart} />
+            <Board st={st} t={t} name={name} />
+            <View style={[s.gutter]}>
+              <Detail label={t.route} value={name(st.route_id)} />
               {st.wait_at && <Detail label={t.wait} value={name(st.wait_at)} time={st.wait_until} />}
-              {st.group_meetup && bundle.profile.group && <Detail label={t.meet} value={`📍 ${name(st.group_meetup)}`} />}
+              {st.group_meetup && bundle.profile.group && <Detail label={t.meet} value={name(st.group_meetup)} />}
             </View>
 
             <RouteMap bundle={bundle} st={st} scenarioKey={scenarioKey} />
 
-            {st.volunteer_escort && <Text style={s.badge}>🙋 {t.volunteer}</Text>}
-            {st.notify_contact && <Text style={s.badge}>✉︎ {t.contactNotified}</Text>}
+            {(st.volunteer_escort || st.notify_contact) && (
+              <View style={[s.gutter, { gap: 10 }]}>
+                {st.volunteer_escort && <Notice tone="ink">{t.volunteer}</Notice>}
+                {st.notify_contact && <Notice tone="ink">{t.contactNotified}</Notice>}
+              </View>
+            )}
 
-            <View>
-              <Text style={s.sectionLabel}>{t.why}</Text>
-              <Text style={[s.body, { marginTop: 4 }]}>{st.reason_localised}</Text>
-              {notEn && <Text style={[s.muted, { marginTop: 4 }]}>{st.reason}</Text>}
+            <View style={[s.gutter, { gap: 8 }]}>
+              <Label>{t.why}</Label>
+              <Txt>{st.reason_localised}</Txt>
+              {notEn && <Txt k="small" c="sub">{st.reason}</Txt>}
+              <Txt k="small" c="sub" style={{ marginTop: 6 }}>{t.source}: {plan.source}</Txt>
             </View>
-            <Text style={s.tiny}>{t.source}: {plan.source}</Text>
           </>
         )}
       </ScrollView>
 
-      <View style={s.footer}>
-        {!escalating && (
-          <Pressable onPress={() => setStep(step + 1)} style={({ pressed }) => [s.primaryButton, pressed && s.pressed]}>
-            <Text style={s.primaryButtonText}>{t.notWork}</Text>
-          </Pressable>
-        )}
-        {step > 0 && (
-          <Pressable onPress={() => setStep(0)}>
-            <Text style={[s.link, { textAlign: "center", padding: 6 }]}>{t.backToFirst}</Text>
-          </Pressable>
-        )}
+      <View style={{ padding: 16, paddingTop: 12, gap: 4, borderTopWidth: 1, borderTopColor: p.line, backgroundColor: p.bg }}>
+        {!escalating && <Btn title={t.notWork} right="↻" onPress={() => setStep(step + 1)} />}
+        {step > 0 && <Btn kind="ghost" title={t.backToFirst} onPress={() => setStep(0)} />}
       </View>
     </View>
   );
@@ -359,12 +395,11 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
 
 function Detail({ label, value, time }: { label: string; value: string; time?: string | null }) {
   return (
-    <View style={[s.row, { borderTopWidth: 1, borderTopColor: C.line, paddingTop: 12 }]}>
-      <View style={{ flex: 1 }}>
-        <Text style={s.muted}>{label}</Text>
-        <Text style={s.cardTitle}>{value}</Text>
-      </View>
-      {time ? <Text style={s.time}>{time}</Text> : null}
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: 1, borderTopColor: usePal().line, paddingVertical: 12 }}>
+      <Txt k="label" c="sub" style={{ width: 92 }}>{label}</Txt>
+      <Txt k="bodyStrong" style={{ flex: 1 }}>{value}</Txt>
+      {time ? <Txt k="big">{time}</Txt> : null}
     </View>
   );
 }
+

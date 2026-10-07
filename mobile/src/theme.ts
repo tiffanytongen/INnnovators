@@ -1,19 +1,89 @@
-// Shared colours, styles and network helpers for both the Participant and Organizer sides.
+// Shared look, type and network helpers for both the Participant and Organizer sides.
+//
+// The look: festival signage at night. The app is dark by default (it's night, phones are dim, batteries matter).
+// When Plan B is triggered the participant's WHOLE screen flips to safety yellow — the screen itself is the alert.
+// Type: Big Shoulders (condensed signage caps) for anything you read from arm's length, Familjen Grotesk for sentences.
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
-export const C = {
-  bg: "#F5F4F0",
-  card: "#FFFFFF",
-  line: "#E7E4DD",
-  text: "#141414",
-  muted: "#6B6862",
-  green: "#15803D",
-  greenBg: "#E7F6EC",
-  alert: "#FFD400",
-  red: "#DC2626",
+// ---- fonts (loaded in App.tsx; family name = the key passed to useFonts) ----
+export const F = {
+  display: "BigShoulders_900Black",
+  displayBold: "BigShoulders_800ExtraBold",
+  displaySemi: "BigShoulders_700Bold",
+  body: "FamiljenGrotesk_400Regular",
+  bodyMed: "FamiljenGrotesk_500Medium",
+  bodySemi: "FamiljenGrotesk_600SemiBold",
+  bodyBold: "FamiljenGrotesk_700Bold",
 };
+
+// ---- palettes ----
+export type Pal = {
+  name: "night" | "alert";
+  bg: string; // screen
+  raised: string; // inputs, pressed rows
+  ink: string; // main text
+  sub: string; // secondary text (≥4.5:1 on bg)
+  line: string; // hairlines
+  accent: string; // the one loud colour
+  onAccent: string; // text on accent
+  danger: string;
+  ok: string;
+};
+
+export const NIGHT: Pal = {
+  name: "night",
+  bg: "#0E0E0C",
+  raised: "#1B1A17",
+  ink: "#F2EFE6",
+  sub: "#A8A397",
+  line: "#2E2C27",
+  accent: "#FFD400",
+  onAccent: "#0E0E0C",
+  danger: "#FF6A47",
+  ok: "#86E3A8",
+};
+
+export const ALERT: Pal = {
+  name: "alert",
+  bg: "#FFD400",
+  raised: "#F0C700",
+  ink: "#0E0E0C",
+  sub: "#4D4500",
+  line: "rgba(14,14,12,0.22)",
+  accent: "#0E0E0C",
+  onAccent: "#FFD400",
+  danger: "#A3200F",
+  ok: "#0B5C2C",
+};
+
+// Kept for older call sites: maps onto the night palette.
+export const C = {
+  bg: NIGHT.bg,
+  card: NIGHT.raised,
+  line: NIGHT.line,
+  text: NIGHT.ink,
+  muted: NIGHT.sub,
+  green: NIGHT.ok,
+  greenBg: NIGHT.raised,
+  alert: NIGHT.accent,
+  red: NIGHT.danger,
+};
+
+// ---- type scale (no colours: screens pass the palette's) ----
+export const T = StyleSheet.create({
+  mega: { fontFamily: F.display, fontSize: 168, lineHeight: 150, letterSpacing: -4 },
+  huge: { fontFamily: F.display, fontSize: 64, lineHeight: 60, letterSpacing: -1 },
+  title: { fontFamily: F.display, fontSize: 44, lineHeight: 42, textTransform: "uppercase" },
+  headline: { fontFamily: F.displayBold, fontSize: 34, lineHeight: 34, textTransform: "uppercase" },
+  big: { fontFamily: F.displayBold, fontSize: 26, lineHeight: 27, textTransform: "uppercase" },
+  label: { fontFamily: F.displaySemi, fontSize: 14, letterSpacing: 1.6, textTransform: "uppercase" },
+  body: { fontFamily: F.body, fontSize: 17, lineHeight: 24 },
+  bodyStrong: { fontFamily: F.bodySemi, fontSize: 17, lineHeight: 24 },
+  small: { fontFamily: F.body, fontSize: 14, lineHeight: 20 },
+  smallStrong: { fontFamily: F.bodySemi, fontSize: 14, lineHeight: 20 },
+});
 
 // The laptop running `npm start`: same IP Expo Go loaded this app from, port 3000.
 export function defaultServer() {
@@ -63,47 +133,13 @@ export async function postJSON<T>(url: string, body: unknown, ms = 60000): Promi
   }
 }
 
+// ---- small shared styles that don't depend on palette ----
 export const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  brand: { color: C.text, fontSize: 44, fontWeight: "900" },
-  hello: { color: C.text, fontSize: 30, fontWeight: "800" },
-  h1: { color: C.text, fontSize: 30, fontWeight: "800", lineHeight: 38, marginTop: 4 },
-  h2: { color: C.text, fontSize: 22, fontWeight: "700" },
-  sub: { color: C.muted, fontSize: 17, marginTop: 6 },
-  body: { color: C.text, fontSize: 17, lineHeight: 24 },
-  muted: { color: C.muted, fontSize: 15, lineHeight: 21 },
-  tiny: { color: C.muted, fontSize: 12 },
-  sectionLabel: { color: C.muted, fontSize: 13, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  link: { color: C.text, fontSize: 16, fontWeight: "700", textDecorationLine: "underline" },
-  smallLink: { color: C.muted, fontSize: 14, textDecorationLine: "underline" },
-  card: { backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.line },
-  cardTitle: { color: C.text, fontSize: 18, fontWeight: "700" },
+  pressed: { opacity: 0.7 },
+  gutter: { paddingHorizontal: 20 },
+  rule: { height: StyleSheet.hairlineWidth * 2, alignSelf: "stretch" },
   row: { flexDirection: "row", alignItems: "center", gap: 14 },
-  pressed: { opacity: 0.75 },
-  chevron: { color: C.muted, fontSize: 28 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: C.alert, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: C.text, fontSize: 22, fontWeight: "900" },
-  gateBadge: { width: 56, height: 56, borderRadius: 14, backgroundColor: C.text, alignItems: "center", justifyContent: "center" },
-  gateLetter: { color: "#fff", fontSize: 32, fontWeight: "900" },
-  time: { color: C.text, fontSize: 24, fontWeight: "900" },
-  signalPill: { backgroundColor: C.greenBg, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  signalPillText: { color: C.green, fontSize: 13, fontWeight: "700" },
-  alertCard: { backgroundColor: C.alert, borderRadius: 20, padding: 18, gap: 8 },
-  alertTitle: { color: C.text, fontSize: 18, fontWeight: "900" },
-  alertBody: { color: C.text, fontSize: 20, fontWeight: "700", lineHeight: 27 },
-  alertCta: { color: C.text, fontSize: 16, fontWeight: "800", marginTop: 4 },
-  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12 },
-  back: { color: C.text, fontSize: 18, fontWeight: "700" },
-  tag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  tagText: { fontSize: 13, fontWeight: "800" },
-  offlineBar: { backgroundColor: "#EDEBE6", color: C.text, paddingHorizontal: 20, paddingVertical: 8, fontSize: 14, fontWeight: "600" },
-  badge: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, color: C.text, borderRadius: 14, overflow: "hidden", paddingHorizontal: 16, paddingVertical: 12, fontSize: 17, fontWeight: "600" },
-  redBox: { backgroundColor: C.red, color: "#fff", borderRadius: 14, overflow: "hidden", padding: 14, fontSize: 17, fontWeight: "800" },
-  noteBox: { borderColor: C.line, borderWidth: 1, borderRadius: 14, padding: 10, color: C.muted, fontSize: 14 },
-  footer: { padding: 16, gap: 6, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.line },
-  primaryButton: { backgroundColor: C.text, borderRadius: 18, paddingVertical: 16, alignItems: "center" },
-  primaryButtonText: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  secondaryButton: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, justifyContent: "center" },
-  secondaryButtonText: { color: C.text, fontSize: 16, fontWeight: "700" },
-  input: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 14, padding: 12, color: C.text, fontSize: 16 },
+  between: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 12 },
+  input: { borderRadius: 4, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1.5 },
+  bar: { minHeight: 60, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 });
