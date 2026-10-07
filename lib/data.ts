@@ -6,12 +6,14 @@ import transportJson from "../data/transport.json";
 import scenariosJson from "../data/scenarios.json";
 import timetableJson from "../data/timetable.json";
 
-export type Connection = { id: string; walk_min: number; covered: boolean; step_free: boolean; note?: string };
+export type Connection = { id: string; walk_min: number; covered: boolean; step_free: boolean; note?: string; closed?: boolean };
 export type Gate = { id: string; name: string; covered: boolean; step_free: boolean; accessible: boolean; capacity_per_hour: number; priority_access?: boolean; connects_to: Connection[] };
-export type Route = { id: string; name: string; gate_id: string; from: string[]; covered: boolean; step_free: boolean; walk_min: number };
-export type Place = { id: string; type: string; name: string; covered?: boolean; step_free?: boolean; staffed?: boolean; via_gates?: string[] };
-export type Train = { line: string; code: string; platform: number; departures: string[] };
-export type Service = { id: string; kind: string; name: string; stop_id: string; depart: string; capacity: number };
+export type Route = { id: string; name: string; gate_id: string; from: string[]; covered: boolean; step_free: boolean; walk_min: number; closed?: boolean };
+export type Place = { id: string; type: string; name: string; covered?: boolean; step_free?: boolean; staffed?: boolean; via_gates?: string[]; approved_waiting?: boolean; closed?: boolean };
+/** Operational confirmations are optional; nominal capacity never establishes remaining seats. */
+export type CapacityConfirmation = { confirmed_remaining?: number; capacity_confirmed_at?: string; capacity_valid_until?: string };
+export type Train = { line: string; code: string; platform: number; departures: string[]; step_free?: boolean; boarding_buffer_minutes?: number; departure_capacity?: Record<string, CapacityConfirmation> };
+export type Service = CapacityConfirmation & { id: string; kind: string; name: string; stop_id: string; depart: string; capacity: number; step_free?: boolean; boarding_buffer_minutes?: number; boarding_deadline?: string; cancelled?: boolean };
 
 export type Profile = {
   id: string;
@@ -29,6 +31,9 @@ export type Profile = {
   weight: number;
   hero?: boolean;
   notes?: string;
+  /** Multiply the route's reference walking duration; 1.5 means 50% more time. */
+  walking_pace_multiplier?: number;
+  preferences?: { prefer_shelter?: boolean; max_walk_minutes?: number; seat_required?: boolean; ready_at?: string; latest_arrival?: string };
 };
 
 export const site = siteJson as unknown as { gates: Gate[]; routes: Route[]; places: Place[]; meetup_points: string[] };
