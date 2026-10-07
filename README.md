@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# INnnovators
 
-## Getting Started
+This repository contains a Next.js website at the root and an Expo Go mobile app in `mobile/`. The mobile app displays the same website in a native WebView, so edits to `app/` appear in the browser and on your phone. It requires a running website; it does not provide offline native screens.
 
-First, run the development server:
+## Run the website and mobile app
+
+Install dependencies once (Node.js 22 LTS recommended):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm --prefix mobile install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Start the website in one terminal:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev:web
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open http://localhost:3000 on your computer. If the website is already running on port 3000, keep that terminal running instead of starting it again.
 
-## Learn More
+Start Expo in a second terminal:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev:mobile
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Connect your phone and computer to the same Wi-Fi. Open the QR code with the iPhone Camera app or the QR scanner in Expo Go on Android. Allow Expo Go local network access if prompted. Keep both terminals running; Ctrl+C stops a server.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The app uses **Expo SDK 54** for compatibility with the App Store build of Expo Go. On Android, install the matching SDK 54 build from [expo.dev/go](https://expo.dev/go?sdkVersion=54&platform=android&device=true) if your installed version reports a mismatch. See [Expo's compatibility guide](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/).
 
-## Deploy on Vercel
+## How the connection works
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+In development, the mobile app gets your computer's network address from Expo and opens port 3000 on that computer. No account or deployment is needed for local use. Website edits reload through Next.js; changes to `mobile/App.tsx` reload through Expo.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For a different website address or port, copy `mobile/.env.example` to `mobile/.env` and set:
+
+```dotenv
+EXPO_PUBLIC_WEBSITE_URL=http://YOUR_COMPUTER_LAN_IP:3000
+```
+
+Restart Expo after changing this setting. Use a reachable HTTPS URL for a hosted website. This value is public and must not contain secrets. On a physical phone, `localhost` points to the phone, not your computer.
+
+If the app cannot connect:
+
+- Open the same website URL in your phone's browser first to check network access.
+- Ensure the website is running, both devices use the same Wi-Fi, and local network access is allowed. Guest Wi-Fi or a VPN may block device-to-device connections.
+- If the website uses a different port, set the full address in `mobile/.env`.
+- Tap **Try again** after restoring the connection.
+- Expo's tunnel only exposes the Expo bundler. It does not expose the Next.js website; use a separately reachable website URL if using a tunnel.
+
+## Project files
+
+- `app/page.tsx`: website home page.
+- `app/layout.tsx` and `app/globals.css`: website layout and styles.
+- `mobile/App.tsx`: Expo Go WebView, loading state, and connection retry screen.
+- `mobile/app.json`: mobile name, icons, and Expo settings.
+
+The website and mobile app have separate dependencies and lockfiles because they require different React versions. Install dependencies in both directories. Website TypeScript checks exclude the mobile app.
+
+## Checks
+
+```bash
+npm run lint
+npm run typecheck:mobile
+npx tsc --noEmit
+```
+
+Build the website with `npm run build`. This local setup does not publish the website or submit a standalone app to an app store.

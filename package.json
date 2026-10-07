@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:web": "next dev --hostname 0.0.0.0 --port 3000",
+    "dev:mobile": "npm --prefix mobile run start --",
+    "typecheck:mobile": "npm --prefix mobile run typecheck",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
