@@ -6,6 +6,7 @@ import { pickCachedScenario } from "../../lib/scenario";
 import { verifyTrigger, type Trigger } from "../../lib/trigger";
 import { strings } from "../../lib/i18n";
 import SiteMap, { type MapData } from "./SiteMap";
+import Signup from "./Signup";
 import { C, s, getJSON, store, hhmm } from "./theme";
 
 // ---- types (same shape as lib/plan.ts, kept local so the app doesn't pull in server code) ----
@@ -36,6 +37,7 @@ const HEROES = [
 export default function Participant({ server, onServer }: { server: string; onServer: (v: string) => void }) {
   const [ready, setReady] = useState(false);
   const [personId, setPersonId] = useState<string | null>(null);
+  const [signingUp, setSigningUp] = useState(false);
   useEffect(() => {
     store.get<string>("planb:person").then((p) => {
       if (p) setPersonId(p);
@@ -48,11 +50,12 @@ export default function Participant({ server, onServer }: { server: string; onSe
     else AsyncStorage.removeItem("planb:person");
   };
   if (!ready) return null;
-  return personId ? <PersonApp server={server} personId={personId} onSwitch={() => choose(null)} /> : <PickScreen server={server} onServer={onServer} onPick={choose} />;
+  if (signingUp) return <Signup server={server} onCancel={() => setSigningUp(false)} onDone={(id) => { setSigningUp(false); choose(id); }} />;
+  return personId ? <PersonApp server={server} personId={personId} onSwitch={() => choose(null)} /> : <PickScreen server={server} onServer={onServer} onPick={choose} onSignup={() => setSigningUp(true)} />;
 }
 
 // ---------- demo: choose whose phone this is ----------
-function PickScreen({ server, onServer, onPick }: { server: string; onServer: (v: string) => void; onPick: (id: string) => void }) {
+function PickScreen({ server, onServer, onPick, onSignup }: { server: string; onServer: (v: string) => void; onPick: (id: string) => void; onSignup: () => void }) {
   const [other, setOther] = useState("");
   const [status, setStatus] = useState<"checking" | "ok" | "fail">("checking");
   useEffect(() => {
@@ -64,7 +67,11 @@ function PickScreen({ server, onServer, onPick }: { server: string; onServer: (v
     <ScrollView contentContainerStyle={{ padding: 24, gap: 14 }}>
       <Text style={s.brand}>Plan B</Text>
       <Text style={[s.muted, { fontSize: 17 }]}>Plan A is your day. Plan B is what happens when it changes.</Text>
-      <Text style={[s.sectionLabel, { marginTop: 18 }]}>Whose phone is this?</Text>
+      <Pressable onPress={onSignup} style={({ pressed }) => [s.alertCard, { marginTop: 12 }, pressed && s.pressed]}>
+        <Text style={s.alertTitle}>✍️ New here? Sign up in 30 seconds</Text>
+        <Text style={[s.body, { color: C.text }]}>Tell us how you're getting home and we'll make your plan.</Text>
+      </Pressable>
+      <Text style={[s.sectionLabel, { marginTop: 18 }]}>Or open an existing attendee (demo)</Text>
       {HEROES.map((h) => (
         <Pressable key={h.id} onPress={() => onPick(h.id)} style={({ pressed }) => [s.card, s.row, pressed && s.pressed]}>
           <View style={s.avatar}><Text style={s.avatarText}>{h.name[0]}</Text></View>
