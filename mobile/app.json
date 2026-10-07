@@ -1,30 +1,56 @@
 {
   "expo": {
+<<<<<<< HEAD
     "name": "INnnovators",
     "slug": "innnovators-mobile",
+=======
+    "name": "Plan B",
+    "slug": "plan-b",
+>>>>>>> 531c703d045bec8f93e872f176c445ad09e78bad
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+<<<<<<< HEAD
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+=======
+>>>>>>> 531c703d045bec8f93e872f176c445ad09e78bad
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
+<<<<<<< HEAD
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
+=======
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+>>>>>>> 531c703d045bec8f93e872f176c445ad09e78bad
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
+<<<<<<< HEAD
     }
   }
 }
+=======
+    },
+    "backgroundColor": "#F5F4F0",
+    "extra": {
+      "serverPort": 3000
+    }
+  }
+}
+>>>>>>> 531c703d045bec8f93e872f176c445ad09e78bad
