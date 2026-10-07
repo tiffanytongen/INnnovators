@@ -7,35 +7,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { describePart, parseScenario, pickCachedScenario, type ScenarioPart } from "../../lib/scenario";
 import { verifyTrigger, type Trigger } from "../../lib/trigger";
 import { strings } from "../../lib/i18n";
-import SiteMap, { type MapData } from "./SiteMap";
+import SiteMap from "./SiteMap";
+import { crowdAwarePlan, normalizeBundle, resolveZone, supportedZones, type Bundle, type Plan, type Step } from "./participant-model";
+import { normalizeCrowd, type CrowdState } from "../../lib/crowd-model";
 import Signup from "./Signup";
 import { ATTENDEE, PLANB, F, addMin, getJSON, hhmm, s, store } from "./theme";
-import { Btn, Card, Check, Field, Notice, PalContext, Rule, Txt, usePal } from "./ui";
+import { Btn, Card, Check, Chips, Field, Notice, PalContext, Rule, Txt, usePal } from "./ui";
 
-// ---- types (same shape as lib/plan.ts, kept local so the app doesn't pull in server code) ----
-type Transport = { mode: "train" | "shuttle" | "taxi" | "pickup"; ref_id: string; line: string; platform: string; depart: string | null };
-type Step = {
-  action: string; gate_id: string; route_id: string; transport: Transport; group_meetup: string | null;
-  wait_at: string | null; wait_until: string | null; volunteer_escort: boolean; notify_contact: boolean;
-  reason: string; text_localised: string; reason_localised: string; arrive?: string;
-};
-type Plan = Step & {
-  weather?: { status: string; source: string }; journey?: { main_tradeoff: string }; approved_by?: string;
-  source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean; needs_human_reason?: string | null;
-};
-type Leg = { walk_min: number; covered: boolean; step_free: boolean };
-type Bundle = {
-  profile: { id: string; name: string; lang: string; group: { size: number } | null; home: { mode: string; booking?: string; zone?: string }; access: { step_free: boolean; wheelchair: boolean } };
-  plans: Record<string, Plan>;
-  names: Record<string, string>;
-  public_key: string;
-  fetched_at: string;
-  map?: MapData;
-  closed?: Record<string, { gates: string[]; places: string[]; storm: boolean; leave?: string }>;
-  legs?: Record<string, Leg>;
-  service_kinds?: Record<string, string>;
-};
-
+// Types, safe bundle loading and crowd-aware re-ranking live in participant-model.ts (offline-safe, tested).
 // Short, attendee-facing labels for what changed (organizers see the full detail).
 function shortPart(x: ScenarioPart): string {
   switch (x.type) {
@@ -81,7 +60,6 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
   const [other, setOther] = useState("");
   const [status, setStatus] = useState<"checking" | "ok" | "fail">("checking");
   useEffect(() => {
-    setStatus("checking");
     getJSON(`${server}/api/trigger`).then(() => setStatus("ok"), () => setStatus("fail"));
   }, [server]);
 
@@ -90,7 +68,7 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
       <View style={{ backgroundColor: p.band, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 32, gap: 8 }}>
         <Txt k="eyebrow" c="sub">Fieldday · Riverside</Txt>
         <Txt k="title">Your journey home is covered by Plan B.</Txt>
-        <Txt c="sub">Shown here as it would appear inside the event's own app. Nobody installs anything extra.</Txt>
+        <Txt c="sub">{"Shown here as it would appear inside the event's own app. Nobody installs anything extra."}</Txt>
       </View>
       <View style={{ padding: 20, gap: 14 }}>
         <Txt k="eyebrow" c="sub">Demo · open an attendee</Txt>
@@ -129,41 +107,57 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
 function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; personId: string; onSwitch: () => void; onPlanB: (on: boolean) => void }) {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [trigger, setTrigger] = useState<Trigger | null>(null);
+  const [crowd, setCrowd] = useState<CrowdState>({});
+  const [zone, setZone] = useState("");
   const [online, setOnline] = useState(true);
   const [error, setError] = useState("");
   const lastRaw = useRef<string | null>(null);
 
-  // Saved copy first (instant, offline), then refresh from the server.
+  // Saved copy first (instant, offline), then refresh. A broken server response never overwrites a working saved plan.
   const refreshBundle = useCallback(async () => {
     try {
-      const b = await getJSON<Bundle>(`${server}/api/bundle/${personId}`, 5000);
+      const b = normalizeBundle(await getJSON<unknown>(`${server}/api/bundle/${personId}`, 5000), personId);
+      if (!b) throw new Error("invalid bundle");
       await store.set(`planb:bundle:${personId}`, b);
       setBundle(b);
       setError("");
     } catch {
-      const saved = await store.get<Bundle>(`planb:bundle:${personId}`);
+      const saved = normalizeBundle(await store.get<unknown>(`planb:bundle:${personId}`), personId);
       if (!saved) setError("Your plan isn't on this phone yet. Open it once with signal.");
     }
   }, [server, personId]);
 
   useEffect(() => {
     (async () => {
-      const [saved, t] = await Promise.all([store.get<Bundle>(`planb:bundle:${personId}`), store.get<Trigger>("planb:trigger")]);
-      if (saved) setBundle(saved);
+      const [saved, t, savedCrowd, savedZone] = await Promise.all([
+        store.get<unknown>(`planb:bundle:${personId}`),
+        store.get<Trigger>("planb:trigger"),
+        store.get<unknown>("planb:crowd"),
+        store.get<string>(`planb:zone:${personId}`),
+      ]);
+      const cached = normalizeBundle(saved, personId);
+      if (cached) setBundle(cached);
       if (t) { setTrigger(t); lastRaw.current = t.raw; }
+      setCrowd(normalizeCrowd(savedCrowd));
+      if (typeof savedZone === "string") setZone(savedZone);
       refreshBundle();
     })();
     const id = setInterval(refreshBundle, 30000);
     return () => clearInterval(id);
   }, [personId, refreshBundle]);
 
-  // Updates from Fieldday (simulated push / SMS link). Need some signal; verified on the phone with the cached public key.
+  // Updates from Fieldday (simulated push / SMS link) plus live path reports. Need some signal;
+  // the trigger is verified on the phone with the cached public key.
   useEffect(() => {
     if (!bundle) return;
     const poll = async () => {
       try {
-        const { trigger: raw } = await getJSON<{ trigger: string | null }>(`${server}/api/trigger`, 2500);
+        const { trigger: raw, crowd: live } = await getJSON<{ trigger: string | null; crowd?: unknown }>(`${server}/api/trigger`, 2500);
         setOnline(true);
+        if (live) {
+          setCrowd(normalizeCrowd(live));
+          store.set("planb:crowd", live);
+        }
         if (!raw || raw === lastRaw.current) return;
         const t = verifyTrigger(raw, bundle.public_key);
         if (!t) return; // forged or corrupted: ignore
@@ -184,8 +178,16 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
     if (!bundle) return null;
     const code = trigger?.code ?? "NORMAL";
     const { key, exact } = pickCachedScenario(code, Object.keys(bundle.plans));
-    return { plan: bundle.plans[key] ?? bundle.plans.NORMAL, key, exact: exact || code === "NORMAL", isPlanB: code !== "NORMAL" };
-  }, [bundle, trigger]);
+    const base = bundle.plans[key] ?? bundle.plans.NORMAL;
+    if (!base) return null;
+    // Re-rank the saved options for where the attendee is now and any path an organizer marked busy/closed.
+    const here = resolveZone(bundle, base, zone);
+    const ranked = crowdAwarePlan(base, crowd, bundle.walking, here, bundle.closed?.[key]);
+    return {
+      plan: ranked.plan, key, exact: exact || code === "NORMAL", isPlanB: code !== "NORMAL",
+      zone: here, zones: supportedZones(bundle, base), unavailable: ranked.unavailable, rerouted: ranked.fromRoute,
+    };
+  }, [bundle, trigger, crowd, zone]);
 
   useEffect(() => onPlanB(!!current?.isPlanB), [current?.isPlanB, onPlanB]);
 
@@ -200,7 +202,8 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
   return (
     <PalContext.Provider value={current.isPlanB ? PLANB : ATTENDEE}>
       <AttendeeScreen
-        key={trigger?.raw ?? "NORMAL"} // a new update starts again from option 1
+        // A new update, a new starting point or a re-ranked route starts again from option 1.
+        key={JSON.stringify([trigger?.raw, current.zone, current.unavailable, current.plan.route_id, current.plan.transport.ref_id])}
         bundle={bundle}
         plan={current.plan}
         scenarioKey={current.key}
@@ -208,6 +211,12 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
         exact={current.exact}
         trigger={trigger}
         online={online}
+        crowd={crowd}
+        zone={current.zone}
+        zones={current.zones}
+        unavailable={current.unavailable}
+        reroutedFrom={current.rerouted}
+        onZone={(z) => { setZone(z); store.set(`planb:zone:${personId}`, z); }}
         onSwitch={onSwitch}
       />
     </PalContext.Provider>
@@ -215,12 +224,14 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
 }
 
 // ---------- the one attendee screen ----------
-function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, onSwitch }: {
-  bundle: Bundle; plan: Plan; scenarioKey: string; isPlanB: boolean; exact: boolean; trigger: Trigger | null; online: boolean; onSwitch: () => void;
+function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, crowd, zone, zones, unavailable, reroutedFrom, onZone, onSwitch }: {
+  bundle: Bundle; plan: Plan; scenarioKey: string; isPlanB: boolean; exact: boolean; trigger: Trigger | null; online: boolean;
+  crowd: CrowdState; zone: string; zones: string[]; unavailable: boolean; reroutedFrom: string | null; onZone: (z: string) => void; onSwitch: () => void;
 }) {
   const p = usePal();
   const t = strings(bundle.profile.lang);
-  const [step, setStep] = useState(0); // 0 = plan, 1..n = alternatives, n+1 = get help
+  const [step, setStep] = useState(unavailable ? 1 + plan.alternatives.length : 0); // 0 = plan, 1..n = alternatives, n+1 = get help
+  const [pickZone, setPickZone] = useState(false);
   const [showRoute, setShowRoute] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -233,8 +244,9 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
 
   // Journey facts, from the venue data saved on the phone.
   const dest = st.transport.mode === "train" ? "flinders_st" : st.transport.platform;
-  const routeLeg = bundle.legs?.[st.route_id];
-  const connLeg = bundle.legs?.[`${st.gate_id}>${dest}`];
+  const routeLeg = bundle.walking?.routes[st.route_id];
+  const connLeg = bundle.walking?.connections[`${st.gate_id}>${dest}`];
+  const pathLevel = crowd[st.route_id]?.level;
   const walk = routeLeg && connLeg ? routeLeg.walk_min + connLeg.walk_min : null;
   const covered = !!routeLeg?.covered && !!connLeg?.covered;
   const stepFree = !!routeLeg?.step_free && !!connLeg?.step_free;
@@ -290,6 +302,22 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
               <Txt style={{ marginTop: 10 }}>{st.text_localised}</Txt>
             </View>
 
+            {/* Where they're starting from (if they moved), and any re-route because a path got busy */}
+            {zones.length > 1 && step === 0 && (
+              <View style={{ gap: 8, marginBottom: -8 }}>
+                <Pressable onPress={() => setPickZone(!pickZone)} style={({ pressed }) => [s.between, { minHeight: 36 }, pressed && s.pressed]}>
+                  <Txt k="small" c="sub">Starting from {name(zone)}</Txt>
+                  <Txt k="smallStrong" c="accent">{pickZone ? "Done" : "Change"}</Txt>
+                </Pressable>
+                {pickZone && (
+                  <Chips options={zones.map((z) => [z, name(z)])} value={zone} onChange={(z) => { onZone(z); setPickZone(false); }} />
+                )}
+              </View>
+            )}
+            {step === 0 && reroutedFrom && (
+              <Notice tone="ink">Path busy: switched from {name(reroutedFrom).replace(/ \(.*/, "")} to {name(st.route_id).replace(/ \(.*/, "")}.</Notice>
+            )}
+
             {/* 3. The journey, once */}
             <Card style={{ gap: 0, padding: 0 }}>
               <View style={[s.row, { padding: 20 }]}>
@@ -300,7 +328,7 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
                   <Txt k="headline">{t.gate} {gate}</Txt>
                   {walk !== null && (
                     <Txt k="small" c="sub">
-                      {walk} {t.minWalk}{covered ? ` · ${t.coveredWord}` : ""}{stepFree ? ` · ${t.stepFreeWord}` : ""}
+                      {walk} {t.minWalk}{covered ? ` · ${t.coveredWord}` : ""}{stepFree ? ` · ${t.stepFreeWord}` : ""}{pathLevel === "heavy" ? " · busy path" : pathLevel === "moderate" ? " · some crowding" : ""}
                     </Txt>
                   )}
                 </View>

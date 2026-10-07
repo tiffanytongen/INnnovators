@@ -3,6 +3,7 @@
 // (3) pre-mortem feasibility counts. Claude decides between options; it never invents them.
 import { site, transport, gateById, routeById, placeById, trainByLine, serviceById, toMin, toTime, type Profile, type Service } from "./data";
 import { parseScenario, type ScenarioPart } from "./scenario";
+import { readCrowd, crowdPenalty } from "./crowd";
 
 export type Transport = { mode: "train" | "shuttle" | "taxi" | "pickup"; ref_id: string; line: string; platform: string; depart: string | null };
 
@@ -75,10 +76,17 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
   const needStepFree = p.access.step_free || p.access.wheelchair;
   const from = p.location_at_end === "accessible_platform" ? ["accessible_platform", "river_stage"] : [p.location_at_end];
   const leave = leaveTime(p, w) + delayMin;
+  const crowd = readCrowd(); // organizer's live path reports: heavy paths rank lower, closed paths are excluded
   const out: Option[] = [];
 
   for (const route of site.routes) {
     if (!route.from.some((f) => from.includes(f))) continue;
+
+    const crowdLevel = crowd[route.id]?.level ?? "low";
+    if (crowdLevel === "closed") continue;
+
+    const crowdCost = crowdPenalty(crowdLevel);
+
     const gate = gateById(route.gate_id)!;
     if (w.closedGates.has(gate.id)) continue;
     if (needStepFree && !(route.step_free && gate.step_free)) continue;
@@ -95,7 +103,11 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
       const walk = arrive - leave;
       const base = { gate_id: gate.id, route_id: route.id, arrive: toTime(arrive) };
       const latestLeave = (depart: number, buffer: number) => toTime(Math.max(leave, depart - walk - buffer));
-      const coverFacts = [`${route.name}: ${route.covered ? "covered" : "NOT covered"}, ${route.step_free ? "step-free" : "has steps"}, ${route.walk_min} min`, `${gate.name} → ${placeById(conn.id)?.name}: ${conn.walk_min} min, ${conn.covered ? "covered" : "not covered"}${conn.note ? ` (${conn.note})` : ""}`];
+      const coverFacts = [
+        `${route.name}: ${route.covered ? "covered" : "NOT covered"}, ${route.step_free ? "step-free" : "has steps"}, ${route.walk_min} min`,
+        `Latest crowd on ${route.name}: ${crowd[route.id] ? crowdLevel : "unknown"}${crowdCost ? ` (+${crowdCost} ranking penalty)` : ""}`,
+        `${gate.name} → ${placeById(conn.id)?.name}: ${conn.walk_min} min, ${conn.covered ? "covered" : "not covered"}${conn.note ? ` (${conn.note})` : ""}`
+      ];
 
       // Train
       if (conn.id === "flinders_st" && p.home.mode === "train") {
@@ -109,7 +121,7 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
             transport: { mode: "train", ref_id: `train_${train.code}`, line: train.line, platform: String(train.platform), depart: toTime(dep) },
             facts: [...coverFacts, `${train.line} line platform ${train.platform}, next departure after arriving: ${toTime(dep)}${delay ? ` (includes +${delay} min delay)` : ""}`],
             mode_change: false, zone_change: false,
-            score: dep - leave + (route.covered ? 0 : 10) + soft,
+            score: dep - leave + crowdCost + (route.covered ? 0 : 10) + soft,
           });
         }
       }
@@ -128,7 +140,7 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
             transport: { mode: s.kind === "accessible_taxi" ? "taxi" : "shuttle", ref_id: s.id, line: s.name, platform: s.stop_id, depart: s.depart },
             facts: [...coverFacts, `${s.name} from ${stop.name}, departs ${s.depart}, capacity ${s.capacity}${booked ? " (their existing booking)" : ""}`],
             mode_change: modeChange, zone_change: false,
-            score: toMin(s.depart) - leave + (modeChange ? 30 : 0) + (p.home.mode === "shuttle" && !booked ? 10 : 0) + soft,
+            score: toMin(s.depart) - leave + crowdCost + (modeChange ? 30 : 0) + (p.home.mode === "shuttle" && !booked ? 10 : 0) + soft,
           });
         }
       }
@@ -143,7 +155,7 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
           transport: { mode: "pickup", ref_id: stop.id, line: `${p.home.contact} pickup`, platform: stop.id, depart: null },
           facts: [...coverFacts, `${stop.name}: ${stop.covered ? "covered" : "not covered"}, ${stop.staffed ? "staffed" : "unstaffed"}${zoneChange ? ` — pickup point changes from ${placeById(p.home.zone)?.name}; their ${p.home.contact} must be told` : ""}`],
           mode_change: false, zone_change: zoneChange,
-          score: arrive - leave + (zoneChange ? 20 : 0) + (stop.staffed ? 0 : 3) + soft,
+          score: arrive - leave + crowdCost + (zoneChange ? 20 : 0) + (stop.staffed ? 0 : 3) + soft,
         });
       }
     }

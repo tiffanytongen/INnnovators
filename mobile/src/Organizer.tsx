@@ -7,6 +7,7 @@ import { ActivityIndicator, Keyboard, Pressable, ScrollView, Text, View } from "
 import { canonical, describePart, parseScenario, type ScenarioPart } from "../../lib/scenario";
 import SiteMap, { type MapData } from "./SiteMap";
 import WeatherPanel from "./WeatherPanel";
+import CrowdPanel from "./CrowdPanel";
 import { F, getJSON, postJSON, s } from "./theme";
 import { Btn, Card, Field, Notice, Rule, Txt, usePal } from "./ui";
 
@@ -230,6 +231,8 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
         {busy === "update" && <ActivityIndicator color={p.accent} />}
         {error ? <Notice>{error.includes("Network") || error.includes("abort") ? `Can't reach the Plan B server at ${server}.` : error}</Notice> : null}
 
+        <Rule />
+        <CrowdPanel server={server} />
         <Rule />
         <WeatherPanel server={server} />
         <Btn kind="ghost" title="All clear: everyone back to Plan A" onPress={allClear} busy={busy === "reset"} />
