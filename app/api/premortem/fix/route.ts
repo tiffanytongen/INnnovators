@@ -3,7 +3,7 @@ import { readFixes, writeFixes, runPremortem } from "@/lib/premortem";
 import { site } from "@/lib/data";
 
 const KINDS = ["accessible", "accessible_taxi", "general"];
-const STOPS: Record<string, string> = { accessible: "shuttle_stop_batman_ave", general: "shuttle_stop_batman_ave", accessible_taxi: "accessible_taxi_rank" };
+const STOPS: Record<string, string> = { accessible: "shuttle_stop_batman_ave", general: "coach_bays", accessible_taxi: "accessible_taxi_rank" };
 
 export async function POST(req: Request) {
   const body = await req.json();

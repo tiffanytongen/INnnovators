@@ -1,19 +1,98 @@
-// Shared colours, styles and network helpers for both the Participant and Organizer sides.
+// Shared look, type and network helpers.
+//
+// Two identities, restored from the earlier pastel design:
+//   Attendee  — warm cream with peach; deepens to coral when Plan B is active.
+//   Organizer — muted pale green: calm, operational.
+// Type: Jost throughout (bold, tight display headings; regular body).
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
-export const C = {
-  bg: "#F5F4F0",
-  card: "#FFFFFF",
-  line: "#E7E4DD",
-  text: "#141414",
-  muted: "#6B6862",
-  green: "#15803D",
-  greenBg: "#E7F6EC",
-  alert: "#FFD400",
-  red: "#DC2626",
+// ---- fonts (loaded in App.tsx; family name = the key passed to useFonts) ----
+export const F = {
+  display: "Jost_600SemiBold",
+  displayBold: "Jost_700Bold",
+  body: "Jost_400Regular",
+  bodyMed: "Jost_500Medium",
+  bodySemi: "Jost_600SemiBold",
+  bodyBold: "Jost_700Bold",
 };
+
+// ---- palettes ----
+export type Pal = {
+  name: "attendee" | "planb" | "organizer";
+  bg: string; // screen
+  band: string; // header band
+  card: string;
+  raised: string; // inputs, inner panels
+  ink: string;
+  sub: string; // secondary text (≥4.5:1 on bg and card)
+  line: string;
+  accent: string; // the one primary action colour
+  onAccent: string;
+  soft: string; // tinted highlight behind key info
+  danger: string;
+  ok: string;
+};
+
+export const ATTENDEE: Pal = {
+  name: "attendee",
+  bg: "#FBF6F1",
+  band: "#FCE6D8",
+  card: "#FFFFFF",
+  raised: "#F8EEE6",
+  ink: "#2B1E1A",
+  sub: "#6B5650",
+  line: "#EFE2D9",
+  accent: "#B4472F",
+  onAccent: "#FFFFFF",
+  soft: "#FFF1E8",
+  danger: "#B33A2B",
+  ok: "#2F7A4E",
+};
+
+// Plan B active: same family, the band deepens to coral so the change is obvious without shouting.
+export const PLANB: Pal = { ...ATTENDEE, name: "planb", band: "#FFCDBB", soft: "#FFE3DA" };
+
+export const ORGANIZER: Pal = {
+  name: "organizer",
+  bg: "#F4F8F3",
+  band: "#D6EBD9",
+  card: "#FFFFFF",
+  raised: "#EEF5EE",
+  ink: "#1E2B23",
+  sub: "#56655B",
+  line: "#E1EAE2",
+  accent: "#2F7A4E",
+  onAccent: "#FFFFFF",
+  soft: "#E6F2E8",
+  danger: "#B33A2B",
+  ok: "#2F7A4E",
+};
+
+// ---- type scale (no colours: components apply the palette) ----
+export const T = StyleSheet.create({
+  mega: { fontFamily: F.displayBold, fontSize: 64, lineHeight: 68, letterSpacing: -1.5 },
+  huge: { fontFamily: F.displayBold, fontSize: 40, lineHeight: 44, letterSpacing: -0.8 },
+  title: { fontFamily: F.displayBold, fontSize: 30, lineHeight: 35, letterSpacing: -0.4 },
+  headline: { fontFamily: F.display, fontSize: 22, lineHeight: 28 },
+  big: { fontFamily: F.bodySemi, fontSize: 18, lineHeight: 24 },
+  eyebrow: { fontFamily: F.bodySemi, fontSize: 13, lineHeight: 18, letterSpacing: 1.4, textTransform: "uppercase" },
+  body: { fontFamily: F.body, fontSize: 17, lineHeight: 25 },
+  bodyStrong: { fontFamily: F.bodySemi, fontSize: 17, lineHeight: 25 },
+  small: { fontFamily: F.body, fontSize: 15, lineHeight: 21 },
+  smallStrong: { fontFamily: F.bodySemi, fontSize: 15, lineHeight: 21 },
+});
+
+export const s = StyleSheet.create({
+  pressed: { opacity: 0.7 },
+  shadow: { shadowColor: "#2B1E1A", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  row: { flexDirection: "row", alignItems: "center", gap: 14 },
+  between: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
+  input: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1 },
+});
+
+// ---- network + storage ----
 
 // The laptop running `npm start`: same IP Expo Go loaded this app from, port 3000.
 export function defaultServer() {
@@ -28,6 +107,19 @@ export async function getJSON<T>(url: string, ms = 3000): Promise<T> {
     const r = await fetch(url, { signal: ctrl.signal, headers: { "cache-control": "no-store" } });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return (await r.json()) as T;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+export async function postJSON<T>(url: string, body: unknown, ms = 60000): Promise<T> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { method: "POST", signal: ctrl.signal, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+    return j as T;
   } finally {
     clearTimeout(t);
   }
@@ -50,60 +142,8 @@ export const hhmm = (unix: number) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-export async function postJSON<T>(url: string, body: unknown, ms = 60000): Promise<T> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ms);
-  try {
-    const r = await fetch(url, { method: "POST", signal: ctrl.signal, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
-    return j as T;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-export const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  brand: { color: C.text, fontSize: 44, fontWeight: "900" },
-  hello: { color: C.text, fontSize: 30, fontWeight: "800" },
-  h1: { color: C.text, fontSize: 30, fontWeight: "800", lineHeight: 38, marginTop: 4 },
-  h2: { color: C.text, fontSize: 22, fontWeight: "700" },
-  sub: { color: C.muted, fontSize: 17, marginTop: 6 },
-  body: { color: C.text, fontSize: 17, lineHeight: 24 },
-  muted: { color: C.muted, fontSize: 15, lineHeight: 21 },
-  tiny: { color: C.muted, fontSize: 12 },
-  sectionLabel: { color: C.muted, fontSize: 13, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase" },
-  link: { color: C.text, fontSize: 16, fontWeight: "700", textDecorationLine: "underline" },
-  smallLink: { color: C.muted, fontSize: 14, textDecorationLine: "underline" },
-  card: { backgroundColor: C.card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: C.line },
-  cardTitle: { color: C.text, fontSize: 18, fontWeight: "700" },
-  row: { flexDirection: "row", alignItems: "center", gap: 14 },
-  pressed: { opacity: 0.75 },
-  chevron: { color: C.muted, fontSize: 28 },
-  avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: C.alert, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: C.text, fontSize: 22, fontWeight: "900" },
-  gateBadge: { width: 56, height: 56, borderRadius: 14, backgroundColor: C.text, alignItems: "center", justifyContent: "center" },
-  gateLetter: { color: "#fff", fontSize: 32, fontWeight: "900" },
-  time: { color: C.text, fontSize: 24, fontWeight: "900" },
-  signalPill: { backgroundColor: C.greenBg, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  signalPillText: { color: C.green, fontSize: 13, fontWeight: "700" },
-  alertCard: { backgroundColor: C.alert, borderRadius: 20, padding: 18, gap: 8 },
-  alertTitle: { color: C.text, fontSize: 18, fontWeight: "900" },
-  alertBody: { color: C.text, fontSize: 20, fontWeight: "700", lineHeight: 27 },
-  alertCta: { color: C.text, fontSize: 16, fontWeight: "800", marginTop: 4 },
-  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12 },
-  back: { color: C.text, fontSize: 18, fontWeight: "700" },
-  tag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  tagText: { fontSize: 13, fontWeight: "800" },
-  offlineBar: { backgroundColor: "#EDEBE6", color: C.text, paddingHorizontal: 20, paddingVertical: 8, fontSize: 14, fontWeight: "600" },
-  badge: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, color: C.text, borderRadius: 14, overflow: "hidden", paddingHorizontal: 16, paddingVertical: 12, fontSize: 17, fontWeight: "600" },
-  redBox: { backgroundColor: C.red, color: "#fff", borderRadius: 14, overflow: "hidden", padding: 14, fontSize: 17, fontWeight: "800" },
-  noteBox: { borderColor: C.line, borderWidth: 1, borderRadius: 14, padding: 10, color: C.muted, fontSize: 14 },
-  footer: { padding: 16, gap: 6, backgroundColor: C.bg, borderTopWidth: 1, borderTopColor: C.line },
-  primaryButton: { backgroundColor: C.text, borderRadius: 18, paddingVertical: 16, alignItems: "center" },
-  primaryButtonText: { color: "#fff", fontSize: 18, fontWeight: "800" },
-  secondaryButton: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, justifyContent: "center" },
-  secondaryButtonText: { color: C.text, fontSize: 16, fontWeight: "700" },
-  input: { backgroundColor: C.card, borderColor: C.line, borderWidth: 1, borderRadius: 14, padding: 12, color: C.text, fontSize: 16 },
-});
+export const addMin = (t: string, m: number) => {
+  const [h, mm] = t.split(":").map(Number);
+  const x = h * 60 + mm + m;
+  return `${String(Math.floor(x / 60) % 24).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`;
+};

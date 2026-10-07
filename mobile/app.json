@@ -24,6 +24,9 @@
     "backgroundColor": "#F5F4F0",
     "extra": {
       "serverPort": 3000
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

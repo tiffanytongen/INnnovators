@@ -1,10 +1,10 @@
 // Everything a phone needs to work offline: profile, all cached plans, place names, and the trigger public key.
 import { connection } from "next/server";
-import { loadProfiles, site, transport, nameOf } from "@/lib/data";
+import { loadProfiles, site, transport, nameOf, toTime } from "@/lib/data";
 import { readPlanFile } from "@/lib/generate";
 import { publicKey } from "@/lib/trigger";
 import { mapPayload } from "@/lib/map";
-import { worldFor, closedPlaces } from "@/lib/options";
+import { worldFor, closedPlaces, leaveTime } from "@/lib/options";
 import { parseScenario } from "@/lib/scenario";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -19,7 +19,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const closed = Object.fromEntries(
     Object.keys(file?.plans ?? {}).map((sc) => {
       const w = worldFor(parseScenario(sc) ?? []);
-      return [sc, { gates: [...w.closedGates], places: closedPlaces(w), storm: w.storm }];
+      return [sc, { gates: [...w.closedGates], places: closedPlaces(w), storm: w.storm, leave: toTime(leaveTime(profile, w)) }];
     }),
   );
   return Response.json({
@@ -29,6 +29,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     public_key: publicKey(),
     map: mapPayload(),
     closed,
+    // Walking facts so the phone can say "12 min walk · covered · step-free" offline.
+    legs: Object.fromEntries([
+      ...site.routes.map((r) => [r.id, { walk_min: r.walk_min, covered: r.covered, step_free: r.step_free }]),
+      ...site.gates.flatMap((g) => g.connects_to.map((c) => [`${g.id}>${c.id}`, { walk_min: c.walk_min, covered: c.covered, step_free: c.step_free && g.step_free }])),
+    ]),
+    service_kinds: Object.fromEntries([...transport.shuttles, ...transport.taxis].map((x) => [x.id, x.kind])),
     fetched_at: new Date().toISOString(),
   });
 }

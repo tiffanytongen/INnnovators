@@ -80,7 +80,7 @@ const cap = (s: string) => s[0] + s.slice(1).toLowerCase();
 
 export function describePart(p: ScenarioPart): string {
   switch (p.type) {
-    case "STORM": return `Storm cell from ${p.at}`;
+    case "STORM": return `Severe weather from ${p.at}`;
     case "GATE_CLOSED": return `Gate ${p.gate} closed`;
     case "TRAIN_DELAY": return `${LINE_NAMES[p.line_code] ?? p.line_code} line +${p.mins} min`;
     case "SHUTTLE_FULL": return "22:45 accessible shuttle full";

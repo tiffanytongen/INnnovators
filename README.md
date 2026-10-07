@@ -47,14 +47,14 @@ npm run build && npm start
 
 ## The app (Expo Go)
 
-Everything happens in the phone app (`mobile/`). A switch at the top flips between the two roles for the demo:
+Plan B is channel-agnostic: in deployment the attendee view lives inside the organiser's existing event app or behind an SMS link. The Expo app shows both sides for the demo; a switch at the top flips roles.
 
-| Role | What it does |
+| Role | Screens |
 |---|---|
-| 🎟 **Participant** | Pick Mei / Tom / Jake → home screen ("Hi Mei", status, your way home + map) → full plan, "Doesn't work for me", works in airplane mode |
-| 🦺 **Organizer** | **Something changed**: type it → AI check → map + what people will see → Approve & send. **Pre-mortem**: who'd have no way home, explain with AI, add a resource → re-run |
+| 🎟 **Participant** (warm peach) | One screen: what changed → when to leave → the journey (gate → transport) → Start route (map) → Why this plan → other options. Works offline. Ticket checkout = 3 optional journey questions. |
+| 🦺 **Organizer** (muted green) | **Tonight**: normal-night status → "Something changed?" → triage (solved automatically vs needs you) → simulated delivery → Approve & send; compact live forecast. **Pre-mortem**: the weakness found, main constraint, a verified contingency, Apply → re-run. |
 
-The laptop runs a small server (`npm start`, port 3000) with no screens: it holds the API key, calls Claude, stores plans and sends updates to phones.
+The laptop runs a small server (`npm start`, port 3000) with no screens: it holds the API keys, calls Claude, stores plans and sends updates to phones.
 
 ## Weather (Organizer → Weather tab)
 
@@ -75,13 +75,15 @@ Terminal version: `npm run weather:check`. Tests: `node --import tsx --test test
 
 ## Demo script (≈2 min, one or two phones)
 
-1. Participant → Mei: home screen says everything's normal; her way home is Gate C, 23:07 train.
-2. Organizer → "Something changed": **Check** the pre-filled sentence → see the map (Gate A closed, +2,162 at Gate B) and what Mei, Tom and Jake will see → **Approve & send**.
-3. Participant → Mei: phone buzzes, yellow "Plans changed" card → tap → Gate C, 22:52, in Mandarin, with her route on the map.
-4. Airplane mode on: plan and map still there; "这个不适合我" shows the next option offline.
-5. Organizer → Pre-mortem: storm shows **140** → add accessible shuttle 23:05 / 150 seats → **0**.
+1. Participant → Mei: Plan A, best time to leave 22:30, Gate B → Sandringham 23:07 (Mandarin).
+2. Organizer → Tonight: "Plan B is spreading departures" (6,388 in a second wave). **Check** the pre-filled sentence → triage: solved automatically vs **140 need you**; 9,748 leave in waves so no gate is overloaded → simulated SMS link → **Approve & send**.
+3. Participant → Mei: Plan B, leave 22:30, Gate C → 22:52 (Mandarin). Start route shows the map; "Why this plan" shows ✓ covered, ✓ avoids closed Gate A.
+4. Airplane mode on: the plan stays; "这个不适合我" shows the next option offline.
+5. Organizer → Pre-mortem: severe weather → **140** → +1 accessible shuttle at Gate D → **Apply** → **140 → 0**. Also found: River Stage 30 min late → 353 shuttle passengers.
 
-Reset between takes: Organizer → "All clear: put everyone back on Plan A", and "reset" under the pre-mortem fix.
+Reset between takes: Organizer → "All clear: everyone back to Plan A", and "Reset contingencies" on the pre-mortem.
+
+Numbers are computed live by the server from `data/` (15,487 attendees in the committed data).
 
 ## How it fits together
 

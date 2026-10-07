@@ -1,4 +1,4 @@
-// 30-second sign-up → profile. Plan A is generated now; the disruption plans continue in the background.
+// Ticket checkout (3 optional journey questions) → profile. Plan A is generated now; the disruption plans continue in the background.
 import { loadProfiles, saveProfiles, scenarios, type Profile } from "@/lib/data";
 import { generatePlan, writePlan } from "@/lib/generate";
 
@@ -27,6 +27,8 @@ export async function POST(req: Request) {
     location_at_end: step_free ? "accessible_platform" : "river_stage",
     must_see: [],
     weight: 1,
+    ...(body.suburb ? { home_suburb: String(body.suburb).slice(0, 60) } : {}),
+    ...(/^\d{2}:\d{2}$/.test(body.leave_by ?? "") ? { preferences: { latest_arrival: body.leave_by } } : {}),
   };
   saveProfiles([...profiles, profile]);
 

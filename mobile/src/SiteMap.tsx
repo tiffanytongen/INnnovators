@@ -21,6 +21,7 @@ type Props = {
   storm?: boolean;
   highlight?: { route_id: string; gate_id: string; dest_id?: string; meetup_id?: string | null } | null;
   gateDelta?: Record<string, number>; // organizer view: people gained per gate
+  accent?: string; // highlight colour for the person's gate / organizer badges
 };
 
 const INK = "#141414";
@@ -28,7 +29,8 @@ const RED = "#DC2626";
 const PAD = 48;
 const pts = (p: Pt[]) => p.map((q) => q.join(",")).join(" ");
 
-export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight, gateDelta }: Props) {
+export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight, gateDelta, accent = "#B4472F" }: Props) {
+  const relevant = new Set([highlight?.dest_id, highlight?.meetup_id, ...closedPlaces].filter(Boolean) as string[]);
   const [, , W0, H] = map.viewBox;
   const W = W0 + PAD;
   const pos = (id: string) => map.gates.find((g) => g.id === id) ?? map.places.find((p) => p.id === id) ?? map.outside.find((o) => o.id === id);
@@ -59,7 +61,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
           const big = p.kind === "stage";
           const w = p.label.length * (big ? 5.4 : 4.6) + 10;
           return (
-            <G key={p.id}>
+            <G key={p.id} opacity={highlight && p.id !== highlight.meetup_id ? 0.4 : 1}>
               <Rect x={p.x - w / 2} y={p.y - 8} width={w} height={16} rx={8} fill={big ? "#fff" : "#F5F4F0"} stroke="#C9C4B8" />
               <SvgText x={p.x} y={p.y + 3.5} textAnchor="middle" fontSize={big ? 9 : 8} fontWeight={big ? "700" : "500"} fill={INK}>{p.label}</SvgText>
             </G>
@@ -71,7 +73,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
           const isDest = highlight?.dest_id === o.id;
           const w = o.label.length * 4.6 + 10;
           return (
-            <G key={o.id}>
+            <G key={o.id} opacity={highlight && !relevant.has(o.id) ? 0.4 : 1}>
               <Rect x={o.x - w / 2} y={o.y - 8} width={w} height={16} rx={4} fill={isDest ? INK : closed ? "#FDECEC" : "#fff"} stroke={closed ? RED : "#C9C4B8"} />
               <SvgText x={o.x} y={o.y + 3} textAnchor="middle" fontSize={8} fontWeight="600" fill={isDest ? "#fff" : closed ? RED : INK}>{closed ? `✕ ${o.label}` : o.label}</SvgText>
             </G>
@@ -83,13 +85,13 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
           const active = highlight?.gate_id === g.id;
           return (
             <G key={g.id}>
-              <Circle cx={g.x} cy={g.y} r={active ? 12 : 10} fill={closed ? RED : active ? "#FFD400" : INK} stroke="#fff" strokeWidth={2} />
-              <SvgText x={g.x} y={g.y + 4} textAnchor="middle" fontSize={active ? 13 : 11} fontWeight="900" fill={active ? INK : "#fff"}>{closed ? "✕" : g.id.replace("gate_", "")}</SvgText>
+              <Circle cx={g.x} cy={g.y} r={active ? 12 : 10} fill={closed ? RED : active ? accent : INK} stroke="#fff" strokeWidth={2} />
+              <SvgText x={g.x} y={g.y + 4} textAnchor="middle" fontSize={active ? 13 : 11} fontWeight="900" fill="#fff">{closed ? "✕" : g.id.replace("gate_", "")}</SvgText>
               {closed && <SvgText x={g.x + 14} y={g.y + 22} fontSize={8} fontWeight="800" fill={RED}>{`Gate ${g.id.replace("gate_", "")} closed`}</SvgText>}
               {!closed && (gateDelta?.[g.id] ?? 0) > 0 && (
                 <G>
-                  <Rect x={g.x + 12} y={g.y - 22} width={46} height={14} rx={7} fill="#FFD400" />
-                  <SvgText x={g.x + 35} y={g.y - 12} textAnchor="middle" fontSize={8} fontWeight="800" fill={INK}>{`+${gateDelta![g.id].toLocaleString()}`}</SvgText>
+                  <Rect x={g.x + 12} y={g.y - 22} width={46} height={14} rx={7} fill={accent} />
+                  <SvgText x={g.x + 35} y={g.y - 12} textAnchor="middle" fontSize={8} fontWeight="800" fill="#fff">{`+${gateDelta![g.id].toLocaleString()}`}</SvgText>
                 </G>
               )}
             </G>

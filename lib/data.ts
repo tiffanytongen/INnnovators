@@ -31,6 +31,8 @@ export type Profile = {
   weight: number;
   hero?: boolean;
   notes?: string;
+  /** From ticket checkout: where they're heading (informational). */
+  home_suburb?: string;
   /** Multiply the route's reference walking duration; 1.5 means 50% more time. */
   walking_pace_multiplier?: number;
   preferences?: { prefer_shelter?: boolean; max_walk_minutes?: number; seat_required?: boolean; ready_at?: string; latest_arrival?: string };
