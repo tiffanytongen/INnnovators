@@ -1,107 +1,109 @@
 // Shared look, type and network helpers for both the Participant and Organizer sides.
 //
-// The look: a night fairground. Deep indigo sky with a few stars, cream "ticket" cards, gold marquee light,
-// candy pink and teal for crowd states. When Plan B is triggered the participant's WHOLE screen flips to
-// marquee gold — the screen itself is the alert.
-// Type: Young Serif (storybook display) for headlines and times, Outfit for everything you read in sentences.
+// The look: a calm pastel-green app. A coloured header band with the greeting, white rounded cards that
+// overlap it, one big number on the main card, and a tab bar with a raised centre button.
+// When Plan B is triggered the band and accents flip from pastel green to pastel coral, so the change is
+// obvious at a glance without shouting.
+// Type: Jost (geometric sans) throughout.
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
-// ---- fonts (loaded in App.tsx; family name = the key passed to useFonts). Swap the display face here. ----
+// ---- fonts (loaded in App.tsx; family name = the key passed to useFonts). ----
 export const F = {
-  display: "YoungSerif_400Regular",
-  body: "Outfit_400Regular",
-  bodyMed: "Outfit_500Medium",
-  bodySemi: "Outfit_600SemiBold",
-  bodyBold: "Outfit_700Bold",
-  bodyBlack: "Outfit_800ExtraBold",
+  display: "Jost_600SemiBold",
+  displayBold: "Jost_700Bold",
+  body: "Jost_400Regular",
+  bodyMed: "Jost_500Medium",
+  bodySemi: "Jost_600SemiBold",
+  bodyBold: "Jost_700Bold",
 };
 
 // ---- palettes ----
 export type Pal = {
-  name: "night" | "alert";
-  bg: string; // screen
-  raised: string; // inputs, pressed rows, panels
-  ink: string; // main text
-  sub: string; // secondary text (≥4.5:1 on bg)
-  line: string; // hairlines
-  accent: string; // the one loud colour (buttons)
-  onAccent: string; // text on accent
-  accentEdge: string; // the chunky "pressed-in" edge under accent buttons
+  name: "calm" | "alert";
+  bg: string; // screen under the cards
+  band: string; // header band
+  bandDeep: string; // a slightly deeper band tone (decorative curve)
+  card: string;
+  raised: string; // inputs, pressed rows, inner panels
+  ink: string;
+  sub: string; // secondary text (≥4.5:1 on card and band)
+  line: string;
+  accent: string; // buttons, links, selected states
+  onAccent: string;
+  badgeBg: string;
+  badgeInk: string;
   danger: string;
   ok: string;
-  ticket: string; // cream ticket card
-  onTicket: string;
-  ticketSub: string;
-  ticketShadow: string; // offset block under the ticket
-  star: string;
+  track: string; // empty progress segments
 };
 
-export const NIGHT: Pal = {
-  name: "night",
-  bg: "#17123B",
-  raised: "#241C57",
-  ink: "#FFF4DE",
-  sub: "#C8C0EA",
-  line: "rgba(255,244,222,0.16)",
-  accent: "#FFC94A",
-  onAccent: "#17123B",
-  accentEdge: "#B8862A",
-  danger: "#FF8DBE",
-  ok: "#3FD0C9",
-  ticket: "#FFF4DE",
-  onTicket: "#17123B",
-  ticketSub: "#5A5378",
-  ticketShadow: "#FF5FA2",
-  star: "rgba(255,244,222,0.3)",
+export const CALM: Pal = {
+  name: "calm",
+  bg: "#F4F8F3",
+  band: "#CFEBD5",
+  bandDeep: "#BFE3C7",
+  card: "#FFFFFF",
+  raised: "#EEF5EE",
+  ink: "#1E2B23",
+  sub: "#56655B",
+  line: "#E1EAE2",
+  accent: "#2F7A4E",
+  onAccent: "#FFFFFF",
+  badgeBg: "#DDF1E1",
+  badgeInk: "#1F5C39",
+  danger: "#B33A2B",
+  ok: "#2F7A4E",
+  track: "#DCE6DE",
 };
 
-// Plan B: the whole screen goes marquee gold.
+// Plan B: the band and accents turn pastel coral.
 export const ALERT: Pal = {
   name: "alert",
-  bg: "#FFC94A",
-  raised: "#F5B92E",
-  ink: "#17123B",
-  sub: "#4A3B12",
-  line: "rgba(23,18,59,0.22)",
-  accent: "#17123B",
-  onAccent: "#FFC94A",
-  accentEdge: "#000000",
-  danger: "#9E1550",
-  ok: "#0B5E5A",
-  ticket: "#FFF4DE",
-  onTicket: "#17123B",
-  ticketSub: "#5A5378",
-  ticketShadow: "#17123B",
-  star: "transparent",
+  bg: "#FBF4F1",
+  band: "#FFD6C9",
+  bandDeep: "#FCC7B6",
+  card: "#FFFFFF",
+  raised: "#FBEEE9",
+  ink: "#2B1E1A",
+  sub: "#6B5650",
+  line: "#F0E2DC",
+  accent: "#B4472F",
+  onAccent: "#FFFFFF",
+  badgeBg: "#FFE3DA",
+  badgeInk: "#8A2F1C",
+  danger: "#B33A2B",
+  ok: "#2F7A4E",
+  track: "#F0DED7",
 };
 
-// Kept for older call sites: maps onto the night palette.
+// Older names, kept so nothing else breaks.
+export const NIGHT = CALM;
 export const C = {
-  bg: NIGHT.bg,
-  card: NIGHT.raised,
-  line: NIGHT.line,
-  text: NIGHT.ink,
-  muted: NIGHT.sub,
-  green: NIGHT.ok,
-  greenBg: NIGHT.raised,
-  alert: NIGHT.accent,
-  red: NIGHT.danger,
+  bg: CALM.bg,
+  card: CALM.card,
+  line: CALM.line,
+  text: CALM.ink,
+  muted: CALM.sub,
+  green: CALM.ok,
+  greenBg: CALM.badgeBg,
+  alert: CALM.accent,
+  red: CALM.danger,
 };
 
 // ---- type scale (no colours: screens pass the palette's) ----
 export const T = StyleSheet.create({
-  mega: { fontFamily: F.display, fontSize: 96, lineHeight: 100 },
-  huge: { fontFamily: F.display, fontSize: 52, lineHeight: 58 },
-  title: { fontFamily: F.display, fontSize: 36, lineHeight: 42 },
-  headline: { fontFamily: F.display, fontSize: 27, lineHeight: 34 },
-  big: { fontFamily: F.bodyBold, fontSize: 19, lineHeight: 24 },
-  label: { fontFamily: F.bodyBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase" },
-  body: { fontFamily: F.body, fontSize: 17, lineHeight: 24 },
-  bodyStrong: { fontFamily: F.bodySemi, fontSize: 17, lineHeight: 24 },
-  small: { fontFamily: F.body, fontSize: 14, lineHeight: 20 },
-  smallStrong: { fontFamily: F.bodySemi, fontSize: 14, lineHeight: 20 },
+  mega: { fontFamily: F.display, fontSize: 76, lineHeight: 84, letterSpacing: -1.5 },
+  huge: { fontFamily: F.display, fontSize: 44, lineHeight: 50, letterSpacing: -0.5 },
+  title: { fontFamily: F.display, fontSize: 32, lineHeight: 38 },
+  headline: { fontFamily: F.display, fontSize: 24, lineHeight: 30 },
+  big: { fontFamily: F.bodySemi, fontSize: 18, lineHeight: 24 },
+  label: { fontFamily: F.bodySemi, fontSize: 13, lineHeight: 18 },
+  body: { fontFamily: F.body, fontSize: 17, lineHeight: 25 },
+  bodyStrong: { fontFamily: F.bodySemi, fontSize: 17, lineHeight: 25 },
+  small: { fontFamily: F.body, fontSize: 15, lineHeight: 21 },
+  smallStrong: { fontFamily: F.bodySemi, fontSize: 15, lineHeight: 21 },
 });
 
 // The laptop running `npm start`: same IP Expo Go loaded this app from, port 3000.
@@ -156,9 +158,10 @@ export async function postJSON<T>(url: string, body: unknown, ms = 60000): Promi
 export const s = StyleSheet.create({
   pressed: { opacity: 0.7 },
   gutter: { paddingHorizontal: 20 },
+  shadow: { shadowColor: "#1E2B23", shadowOpacity: 0.07, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   rule: { height: StyleSheet.hairlineWidth * 2, alignSelf: "stretch" },
   row: { flexDirection: "row", alignItems: "center", gap: 14 },
   between: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: 12 },
-  input: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1 },
+  input: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1 },
   bar: { minHeight: 60, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 });

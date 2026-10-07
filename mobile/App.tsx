@@ -5,24 +5,22 @@ import { Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
-import { YoungSerif_400Regular } from "@expo-google-fonts/young-serif";
-import { Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold } from "@expo-google-fonts/outfit";
+import { Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold } from "@expo-google-fonts/jost";
 import Participant from "./src/Participant";
 import Organizer from "./src/Organizer";
-import { ALERT, F, NIGHT, defaultServer, store, type Pal } from "./src/theme";
-import { PalContext, Stars } from "./src/ui";
+import { ALERT, CALM, F, defaultServer, store, type Pal } from "./src/theme";
+import { PalContext } from "./src/ui";
 
 type Mode = "participant" | "organizer";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    YoungSerif_400Regular,
-    Outfit_400Regular, Outfit_500Medium, Outfit_600SemiBold, Outfit_700Bold, Outfit_800ExtraBold,
+    Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold,
   });
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<Mode>("participant");
   const [server, setServer] = useState(defaultServer());
-  const [alert, setAlert] = useState(false); // participant is on Plan B → whole app goes yellow
+  const [alert, setAlert] = useState(false); // participant is on Plan B → band and accents turn coral
 
   useEffect(() => {
     (async () => {
@@ -42,23 +40,22 @@ export default function App() {
     store.set("planb:server", v);
   };
 
-  const pal: Pal = mode === "participant" && alert ? ALERT : NIGHT;
+  const pal: Pal = mode === "participant" && alert ? ALERT : CALM;
 
   return (
     <SafeAreaProvider>
       <PalContext.Provider value={pal}>
-        <StatusBar style={pal.name === "alert" ? "dark" : "light"} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: pal.bg }} edges={["top", "bottom"]}>
-          <Stars />
-          {/* Role switch: wordmark left, pill switch right */}
+        <StatusBar style="dark" />
+        <SafeAreaView style={{ flex: 1, backgroundColor: pal.band }} edges={["top"]}>
+          {/* Role switch: wordmark left, pill toggle right (sits on the header band) */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4, gap: 12 }}>
-            <Text style={{ fontFamily: fontsLoaded ? F.display : undefined, fontSize: 24, color: pal.name === "alert" ? pal.ink : pal.accent }}>Plan B</Text>
-            <View style={{ flexDirection: "row", padding: 4, borderRadius: 999, backgroundColor: pal.name === "alert" ? "rgba(23,18,59,0.1)" : "rgba(255,244,222,0.08)", borderWidth: 1, borderColor: pal.line }}>
+            <Text style={{ fontFamily: fontsLoaded ? F.displayBold : undefined, fontSize: 22, color: pal.ink }}>Plan B</Text>
+            <View style={{ flexDirection: "row", padding: 4, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.55)" }}>
               {(["participant", "organizer"] as Mode[]).map((m) => {
                 const on = mode === m;
                 return (
-                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.ink : "transparent" }}>
-                    <Text style={{ fontFamily: fontsLoaded ? F.bodySemi : undefined, fontSize: 14, color: on ? pal.bg : pal.sub }}>
+                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.card : "transparent" }}>
+                    <Text style={{ fontFamily: fontsLoaded ? F.bodySemi : undefined, fontSize: 14, color: on ? pal.ink : pal.sub }}>
                       {m === "participant" ? "Participant" : "Organizer"}
                     </Text>
                   </Pressable>
@@ -66,11 +63,13 @@ export default function App() {
               })}
             </View>
           </View>
-          {!ready || !fontsLoaded ? null : mode === "participant" ? (
-            <Participant server={server} onServer={changeServer} onAlert={setAlert} />
-          ) : (
-            <Organizer server={server} />
-          )}
+          <SafeAreaView style={{ flex: 1, backgroundColor: pal.bg }} edges={["bottom"]}>
+            {!ready || !fontsLoaded ? null : mode === "participant" ? (
+              <Participant server={server} onServer={changeServer} onAlert={setAlert} />
+            ) : (
+              <Organizer server={server} />
+            )}
+          </SafeAreaView>
         </SafeAreaView>
       </PalContext.Provider>
     </SafeAreaProvider>

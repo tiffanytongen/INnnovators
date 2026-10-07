@@ -5,7 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
 import { canonical, describePart, parseScenario, type ScenarioPart } from "../../lib/scenario";
 import SiteMap, { type MapData } from "./SiteMap";
 import { s, getJSON, postJSON } from "./theme";
-import { Btn, Chips, Field, Label, Notice, Txt, usePal } from "./ui";
+import { Badge, Band, Btn, Card, Chips, Field, Notice, Txt, usePal } from "./ui";
 
 const DEMO_TEXT = "Storm at 11pm, Gate A closed, Sandringham line +25 min, accessible shuttle full";
 const WHO: Record<string, string> = { mei_19: "Mei · reads Mandarin · train", tom_70: "Tom · wheelchair · shuttle", jake_16: "Jake, 16 · parent pickup" };
@@ -37,34 +37,57 @@ export default function Organizer({ server }: { server: string }) {
   const p = usePal();
   const [tab, setTab] = useState<"incident" | "premortem">("incident");
   return (
-    <View style={{ flex: 1 }}>
-      <View style={[s.gutter, { paddingTop: 18 }]}>
-        <Txt k="title" c="accent">Fieldday Ops</Txt>
-        <Txt k="label" c="sub" style={{ marginTop: 6 }}>Riverside · Saturday · 15,487 attendees</Txt>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14, marginBottom: 14 }}>
-          {([["incident", "Something changed"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
-            <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)} style={{ minHeight: 44, paddingHorizontal: 16, borderRadius: 999, justifyContent: "center", backgroundColor: tab === k ? p.accent : "transparent", borderWidth: 1, borderColor: tab === k ? p.accent : p.line }}>
-              <Txt k="smallStrong" c={tab === k ? "onAccent" : "ink"} style={{ fontSize: 15 }}>{l}</Txt>
-            </Pressable>
-          ))}
+    <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <Band height={200}>
+        <View style={[s.gutter, { paddingTop: 14, paddingBottom: 20 }]}>
+          <Txt k="title">Fieldday Ops</Txt>
+          <Txt k="headline" c="sub" style={{ fontFamily: "Jost_400Regular" }}>Riverside · Saturday</Txt>
         </View>
+        <View style={s.gutter}>
+          <Card>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: p.accent, alignItems: "center", justifyContent: "center" }}>
+                <Txt k="label" c="onAccent">B</Txt>
+              </View>
+              <View style={{ width: 1, height: 22, backgroundColor: p.line }} />
+              <Txt k="bodyStrong" style={{ flex: 1 }}>Staff console</Txt>
+              <Badge>Live</Badge>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "center", gap: 8 }}>
+              <Txt k="mega" style={{ fontSize: 60, lineHeight: 68 }}>15,487</Txt>
+              <Txt k="bodyStrong" c="sub">attendees</Txt>
+            </View>
+            <View role="tablist" style={{ flexDirection: "row", padding: 4, borderRadius: 999, backgroundColor: p.raised }}>
+              {([["incident", "Something changed"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
+                <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} onPress={() => setTab(k)} style={[{ flex: 1, minHeight: 44, borderRadius: 999, alignItems: "center", justifyContent: "center" }, tab === k && [s.shadow, { backgroundColor: p.card }]]}>
+                  <Txt k="smallStrong" c={tab === k ? "ink" : "sub"}>{l}</Txt>
+                </Pressable>
+              ))}
+            </View>
+          </Card>
+        </View>
+      </Band>
+      <View style={{ marginTop: 16 }}>
+        {tab === "incident" ? <Incident server={server} onPremortem={() => setTab("premortem")} /> : <PremortemTab server={server} />}
       </View>
-      <View style={{ height: 1, backgroundColor: p.line }} />
-      {tab === "incident" ? <Incident server={server} onPremortem={() => setTab("premortem")} /> : <PremortemTab server={server} />}
-    </View>
+    </ScrollView>
   );
 }
 
-// A numbered stage of the incident flow: big "01" in the gutter, ruled off from the next one.
+// A numbered stage of the incident flow, as a card.
 function StepCard({ n, title, done, children }: { n: number; title: string; done?: boolean; children: React.ReactNode }) {
   const p = usePal();
   return (
-    <View style={{ gap: 14, paddingTop: 18, paddingBottom: 22, borderBottomWidth: 1, borderBottomColor: p.line }}>
-      <View style={[s.gutter, { flexDirection: "row", alignItems: "flex-end", gap: 12 }]}>
-        <Txt k="huge" c={done ? "ok" : "accent"} style={{ fontSize: 40, lineHeight: 46 }}>{done ? "✓" : n}</Txt>
-        <Txt k="headline" style={{ flex: 1, paddingBottom: 3 }}>{title}</Txt>
-      </View>
-      <View style={[s.gutter, { gap: 12 }]}>{children}</View>
+    <View style={[s.gutter, { marginBottom: 16 }]}>
+      <Card>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: done ? p.badgeBg : p.accent, alignItems: "center", justifyContent: "center" }}>
+            <Txt k="smallStrong" c={done ? "badgeInk" : "onAccent"}>{done ? "✓" : n}</Txt>
+          </View>
+          <Txt k="headline" style={{ flex: 1 }}>{title}</Txt>
+        </View>
+        {children}
+      </Card>
     </View>
   );
 }
@@ -127,7 +150,7 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
 
   const p = usePal();
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+    <View>
       <StepCard n={1} title="What's happening?" done={!!parsed}>
         <Field value={text} onChangeText={setText} multiline accessibilityLabel="What's happening?" placeholder="Type it like a text message, e.g. storm at 11, gate A shut" style={{ minHeight: 96, textAlignVertical: "top", fontSize: 18, lineHeight: 25 }} />
         <Button title={busy === "check" ? "AI is reading…" : "Check"} onPress={check} busy={busy === "check"} disabled={!text.trim()} />
@@ -153,10 +176,10 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
       {preview && (
         <StepCard n={2} title="What people will see" done={!!sent}>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
-            <Txt k="huge" c="accent" style={{ fontSize: 64, lineHeight: 70 }}>{preview.affected_people.toLocaleString()}</Txt>
+            <Txt k="mega" c="accent" style={{ fontSize: 56, lineHeight: 62 }}>{preview.affected_people.toLocaleString()}</Txt>
             <Txt k="bodyStrong" style={{ flex: 1, paddingBottom: 6 }}>people get a new plan. Everyone else keeps their usual way home.</Txt>
           </View>
-          <View style={{ borderRadius: 22, overflow: "hidden", borderWidth: 2, borderColor: p.line }}>
+          <View style={{ borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: p.line }}>
             <SiteMap map={preview.map} closedGates={preview.closed_gates} closedPlaces={preview.closed_places} storm={preview.storm} gateDelta={preview.gate_delta} />
           </View>
           <Txt k="small" c="sub">Red = closed. Yellow = extra people at that gate, so you know where to send staff.</Txt>
@@ -202,12 +225,12 @@ function Incident({ server, onPremortem }: { server: string; onPremortem: () => 
         </StepCard>
       )}
 
-      <View style={[s.gutter, { gap: 12, paddingTop: 16 }]}>
+      <View style={[s.gutter, { gap: 12 }]}>
         {busy === "update" && <Txt c="sub">Updating…</Txt>}
         {error ? <Notice>{error.includes("Network") || error.includes("abort") ? `Can't reach the Plan B server at ${server}.` : error}</Notice> : null}
         <Btn kind="ghost" title="All clear: put everyone back on Plan A" onPress={allClear} disabled={!!busy} />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -243,14 +266,15 @@ function PremortemTab({ server }: { server: string }) {
   const changed = before !== null && before !== current.no_plan;
 
   return (
-    <ScrollView contentContainerStyle={{ paddingTop: 16, paddingBottom: 40, gap: 18 }} keyboardShouldPersistTaps="handled">
-      <Txt c="sub" style={s.gutter}>
+    <View style={{ gap: 16 }}>
+      <Txt k="small" c="sub" style={s.gutter}>
         Before the festival, every attendee ({report.total_people.toLocaleString()} people) is tested against every situation, with real gate, cover, step-free and seat limits.
       </Txt>
 
       {/* Scoreboard: scenario left, people with no way home right. */}
-      <View>
-        <Label style={[s.gutter, { marginBottom: 4 }]} right={<Txt k="label" c="sub">No way home</Txt>}>Scenario</Label>
+      <View style={s.gutter}>
+       <Card style={{ paddingHorizontal: 0, paddingBottom: 6, gap: 4 }}>
+        <View style={[s.gutter, s.between]}><Txt k="label" c="sub">Scenario</Txt><Txt k="label" c="sub">No way home</Txt></View>
         {report.results.map((r) => {
           const on = r.scenario === current.scenario;
           return (
@@ -259,21 +283,24 @@ function PremortemTab({ server }: { server: string }) {
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => { setSelected(r.scenario); setBefore(null); setExplain(""); }}
-              style={({ pressed }) => [s.gutter, { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderBottomWidth: 1, borderBottomColor: p.line, backgroundColor: on ? p.raised : "transparent" }, pressed && s.pressed]}
+              style={({ pressed }) => [s.gutter, { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, borderTopWidth: 1, borderTopColor: p.line, backgroundColor: on ? p.raised : "transparent" }, pressed && s.pressed]}
             >
-              <Txt k="big" c={on ? "accent" : "sub"} style={{ width: 14 }}>{on ? "▸" : ""}</Txt>
               <Txt k={on ? "bodyStrong" : "body"} style={{ flex: 1, fontSize: 16 }}>{label(r.scenario)}</Txt>
-              <Txt k="headline" c={r.no_plan ? "danger" : "ok"}>{r.no_plan}</Txt>
+              <View style={{ minWidth: 52, paddingHorizontal: 10, paddingVertical: 2, borderRadius: 999, alignItems: "center", backgroundColor: r.no_plan ? "#FDE8E4" : p.badgeBg }}>
+                <Txt k="big" style={{ color: r.no_plan ? p.danger : p.badgeInk }}>{r.no_plan}</Txt>
+              </View>
             </Pressable>
           );
         })}
+       </Card>
       </View>
 
-      <View style={[s.gutter, { gap: 12 }]}>
-        <Label>{label(current.scenario)}</Label>
+      <View style={s.gutter}>
+       <Card>
+        <Badge>{label(current.scenario)}</Badge>
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 14, flexWrap: "wrap" }}>
-          {changed && <Txt k="huge" c="sub" style={{ textDecorationLine: "line-through", fontSize: 52, lineHeight: 60 }}>{before}</Txt>}
-          <Txt k="mega" c={current.no_plan ? "danger" : "ok"} style={{ fontSize: 88, lineHeight: 96 }}>{current.no_plan}</Txt>
+          {changed && <Txt k="huge" c="sub" style={{ textDecorationLine: "line-through" }}>{before}</Txt>}
+          <Txt k="mega" c={current.no_plan ? "danger" : "ok"}>{current.no_plan}</Txt>
           <Txt k="big" style={{ paddingBottom: 12, flexShrink: 1 }}>people have{"\n"}no way home</Txt>
         </View>
 
@@ -290,10 +317,12 @@ function PremortemTab({ server }: { server: string }) {
             {explain ? <Txt style={{ backgroundColor: p.raised, padding: 14, borderRadius: 16 }}>{explain}</Txt> : null}
           </View>
         )}
+       </Card>
       </View>
 
-      <View style={[s.gutter, { gap: 12, marginTop: 8 }]}>
-        <Label>Fix it: add a resource</Label>
+      <View style={s.gutter}>
+       <Card>
+        <Txt k="headline">Fix it: add a resource</Txt>
         <Chips options={[["accessible", "Accessible shuttle"], ["accessible_taxi", "Accessible taxis"], ["general", "General shuttle"]]} value={fix.kind} onChange={(k) => setFix({ ...fix, kind: k })} />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1, gap: 6 }}><Txt k="label" c="sub">Departs</Txt><Field value={fix.depart} accessibilityLabel="Departs" onChangeText={(v) => setFix({ ...fix, depart: v })} /></View>
@@ -304,7 +333,8 @@ function PremortemTab({ server }: { server: string }) {
           <Btn kind="ghost" title={`Added: ${report.fixes.map((f) => `${f.name} (${f.capacity} seats)`).join(", ")} · reset`} onPress={() => run("reset", async () => { setBefore(null); setReport(await postJSON<Premortem>(`${server}/api/premortem/fix`, { action: "reset" })); })} />
         )}
         {error ? <Notice>{error}</Notice> : null}
+       </Card>
       </View>
-    </ScrollView>
+    </View>
   );
 }

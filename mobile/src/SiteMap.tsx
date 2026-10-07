@@ -27,30 +27,29 @@ type Props = {
 
 const PAD = 48;
 
-// Map colours follow the screen: an indigo night map, or a cream paper map on the gold Plan B screen.
+// Map colours: a soft paper map; the highlighted route uses the screen's accent (green, or coral on Plan B).
 function mapColours(p: Pal) {
-  const dark = p.name === "night";
   return {
-    bg: p.bg,
-    river: dark ? "#223F80" : "#BFD3F2",
-    riverText: dark ? "#B7CBF2" : "#1F3D7A",
-    site: dark ? "#241C57" : "#FFF4DE",
-    siteStroke: dark ? "#3A307A" : "#17123B",
-    path: dark ? "#5A4F9A" : "#B8A77A",
-    pathCovered: dark ? "#7E74C2" : "#6E5F3A",
-    pill: dark ? "#17123B" : "#FFF4DE",
-    pillStage: dark ? "#FFF4DE" : "#17123B",
-    pillStroke: dark ? "#4A3F92" : "#17123B",
-    text: dark ? "#E8E2FA" : "#17123B",
-    textStage: dark ? "#17123B" : "#FFF4DE",
-    ink: dark ? "#FFF4DE" : "#17123B",
-    onInk: dark ? "#17123B" : "#FFF4DE",
-    route: dark ? "#FFC94A" : "#FF5FA2",
-    gateActive: dark ? "#FFC94A" : "#FF5FA2",
-    onGateActive: "#17123B",
-    red: dark ? "#FF8DBE" : "#9E1550",
-    redBg: dark ? "#3A1838" : "#FFD6E6",
-    you: dark ? "#3FD0C9" : "#0B5E5A",
+    bg: p.card,
+    river: "#D8E9F3",
+    riverText: "#41677F",
+    site: p.name === "alert" ? "#FBEDE7" : "#E7F4E9",
+    siteStroke: p.name === "alert" ? "#F0D2C6" : "#C9E3CE",
+    path: "#C2CBC4",
+    pathCovered: "#99A69D",
+    pill: "#FFFFFF",
+    pillStage: "#FFFFFF",
+    pillStroke: "#D5DDD7",
+    text: "#2A332D",
+    textStage: "#1E2B23",
+    ink: "#2A332D",
+    onInk: "#FFFFFF",
+    route: p.accent,
+    gateActive: p.accent,
+    onGateActive: "#FFFFFF",
+    red: "#B33A2B",
+    redBg: "#FDE8E4",
+    you: "#2563EB",
   };
 }
 
