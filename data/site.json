@@ -230,7 +230,8 @@
       "name": "Accessible viewing platform (River Stage, covered)",
       "covered": true,
       "step_free": true,
-      "staffed": true
+      "staffed": true,
+      "approved_waiting": true
     },
     {
       "id": "quiet_zone",

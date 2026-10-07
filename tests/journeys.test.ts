@@ -14,7 +14,8 @@ const settings: JourneySettings = { festival_date: "2026-10-08", timezone: "Aust
 
 test("candidates enumerate later departures rather than only the first train", () => {
   const result = buildJourneyOptions(attendee, "NORMAL", settings);
-  const openPath = result.options.filter((option) => option.route_id === "route_C_open");
+  // Trains only: Gate C also leads to the coach bays, whose shuttles carry confirmed seats.
+  const openPath = result.options.filter((option) => option.route_id === "route_C_open" && option.transport.mode === "train");
   assert.ok(openPath.some((option) => option.depart_at === "22:47"));
   assert.ok(openPath.some((option) => option.depart_at === "23:07"));
   assert.ok(openPath.every((option) => option.capacity.status === "unknown"));
@@ -63,10 +64,15 @@ test("public train seat requirements cannot be satisfied by unknown boarding cap
 
 test("nominal service capacity is not accepted as confirmed remaining seats", () => {
   const person: Profile = { ...attendee, location_at_end: "accessible_platform", home: { mode: "shuttle", booking: "shuttle_acc_2320" }, access: { ...attendee.access, wheelchair: true, step_free: true } };
-  const missing = buildJourneyOptions(person, "NORMAL", settings);
+  // Strip any confirmations from the live data so this tests the rule, not the current data file.
+  const unconfirmed = structuredClone(transport);
+  for (const service of [...unconfirmed.shuttles, ...unconfirmed.taxis]) {
+    delete service.confirmed_remaining; delete service.capacity_confirmed_at; delete service.capacity_valid_until;
+  }
+  const missing = buildJourneyOptions(person, "NORMAL", { ...settings, transport: unconfirmed });
   assert.equal(missing.options.length, 0);
   assert.ok(missing.missing_information.some((value) => value.includes("nominal capacity")));
-  const available = structuredClone(transport);
+  const available = structuredClone(unconfirmed);
   Object.assign(available.shuttles.find((service) => service.id === "shuttle_acc_2320")!, { confirmed_remaining: 1, capacity_confirmed_at: "2026-10-08T10:58:00Z" });
   const confirmed = buildJourneyOptions(person, "NORMAL", { ...settings, transport: available });
   assert.ok(confirmed.options.length);

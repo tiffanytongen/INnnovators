@@ -9,7 +9,8 @@
     "lint": "eslint",
     "gen:data": "tsx scripts/generate-data.ts",
     "gen:plans": "tsx scripts/generate-plans.ts",
-    "mobile": "cd mobile && npx expo start"
+    "mobile": "cd mobile && npx expo start",
+    "weather:check": "tsx scripts/weather-check.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

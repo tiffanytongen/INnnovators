@@ -16,7 +16,7 @@ type Step = {
   wait_at: string | null; wait_until: string | null; volunteer_escort: boolean; notify_contact: boolean;
   reason: string; text_localised: string; reason_localised: string;
 };
-type Plan = Step & { source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean };
+type Plan = Step & { weather?: { status: string; source: string; retrieved_at: string | null }; journey?: { main_tradeoff: string }; approved_by?: string; source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean };
 type Bundle = {
   profile: { id: string; name: string; lang: string; group: { size: number } | null };
   plans: Record<string, Plan>;
@@ -339,6 +339,15 @@ function PlanScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online
               <Text style={[s.body, { marginTop: 4 }]}>{st.reason_localised}</Text>
               {notEn && <Text style={[s.muted, { marginTop: 4 }]}>{st.reason}</Text>}
             </View>
+            {step === 0 && plan.weather && (
+              <View style={[s.card, { gap: 4, paddingVertical: 12 }]}>
+                <Text style={s.cardTitle}>🌦 Checked against tonight's forecast</Text>
+                {plan.journey?.main_tradeoff ? <Text style={s.body}>{plan.journey.main_tradeoff}</Text> : null}
+                <Text style={s.tiny}>
+                  {plan.weather.source}{plan.weather.status !== "available" ? " (forecast unavailable)" : ""}{plan.approved_by ? ` · approved by ${plan.approved_by}` : ""}
+                </Text>
+              </View>
+            )}
             <Text style={s.tiny}>{t.source}: {plan.source}</Text>
           </>
         )}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { canonical, describePart, parseScenario, type ScenarioPart } from "../../lib/scenario";
 import SiteMap, { type MapData } from "./SiteMap";
+import WeatherTab from "./WeatherTab";
 import { C, s, getJSON, postJSON } from "./theme";
 
 const DEMO_TEXT = "Storm at 11pm, Gate A closed, Sandringham line +25 min, accessible shuttle full";
@@ -36,21 +37,21 @@ type Premortem = {
 const label = (code: string) => (code === "NORMAL" ? "Normal night" : (parseScenario(code) ?? []).map(describePart).join(" + "));
 
 export default function Organizer({ server }: { server: string }) {
-  const [tab, setTab] = useState<"incident" | "premortem">("incident");
+  const [tab, setTab] = useState<"incident" | "weather" | "premortem">("incident");
   return (
     <View style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
         <Text style={s.hello}>Fieldday Ops</Text>
         <Text style={s.muted}>Riverside · Saturday · 15,487 attendees</Text>
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-          {([["incident", "Something changed"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+          {([["incident", "Something changed"], ["weather", "Weather"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => (
             <Pressable key={k} onPress={() => setTab(k)} style={[s.tag, { backgroundColor: tab === k ? C.text : C.card, borderWidth: 1, borderColor: tab === k ? C.text : C.line, paddingHorizontal: 14, paddingVertical: 8 }]}>
               <Text style={{ color: tab === k ? "#fff" : C.text, fontWeight: "700", fontSize: 14 }}>{l}</Text>
             </Pressable>
           ))}
         </View>
       </View>
-      {tab === "incident" ? <Incident server={server} onPremortem={() => setTab("premortem")} /> : <PremortemTab server={server} />}
+      {tab === "incident" ? <Incident server={server} onPremortem={() => setTab("premortem")} /> : tab === "weather" ? <WeatherTab server={server} /> : <PremortemTab server={server} />}
     </View>
   );
 }

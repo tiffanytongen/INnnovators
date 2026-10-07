@@ -17,7 +17,8 @@
         "24:37",
         "25:37",
         "26:37"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Frankston",
@@ -34,7 +35,8 @@
         "24:44",
         "25:44",
         "26:44"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Belgrave",
@@ -48,7 +50,8 @@
         "24:10",
         "25:10",
         "26:10"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Lilydale",
@@ -62,7 +65,8 @@
         "24:15",
         "25:15",
         "26:15"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Craigieburn",
@@ -76,7 +80,8 @@
         "24:12",
         "25:12",
         "26:12"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Werribee",
@@ -90,7 +95,8 @@
         "24:09",
         "25:09",
         "26:09"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Hurstbridge",
@@ -104,7 +110,8 @@
         "24:18",
         "25:18",
         "26:18"
-      ]
+      ],
+      "step_free": true
     },
     {
       "line": "Pakenham",
@@ -120,7 +127,8 @@
         "24:16",
         "25:16",
         "26:16"
-      ]
+      ],
+      "step_free": true
     }
   ],
   "shuttles": [
@@ -130,7 +138,11 @@
       "name": "Accessible shuttle 22:45 (to Southern Cross & Richmond)",
       "stop_id": "shuttle_stop_batman_ave",
       "depart": "22:45",
-      "capacity": 60
+      "capacity": 60,
+      "confirmed_remaining": 60,
+      "capacity_confirmed_at": "2026-10-01T09:00:00+10:00",
+      "capacity_valid_until": "2026-12-31T23:59:00+11:00",
+      "step_free": true
     },
     {
       "id": "shuttle_acc_2320",
@@ -138,7 +150,11 @@
       "name": "Accessible shuttle 23:20 (backup run)",
       "stop_id": "shuttle_stop_batman_ave",
       "depart": "23:20",
-      "capacity": 30
+      "capacity": 30,
+      "confirmed_remaining": 30,
+      "capacity_confirmed_at": "2026-10-01T09:00:00+10:00",
+      "capacity_valid_until": "2026-12-31T23:59:00+11:00",
+      "step_free": true
     },
     {
       "id": "shuttle_gen_2250",
@@ -146,7 +162,10 @@
       "name": "General shuttle 22:50 (to Southern Cross, from Flinders St coach bays)",
       "stop_id": "coach_bays",
       "depart": "22:50",
-      "capacity": 1200
+      "capacity": 1200,
+      "confirmed_remaining": 1200,
+      "capacity_confirmed_at": "2026-10-01T09:00:00+10:00",
+      "capacity_valid_until": "2026-12-31T23:59:00+11:00"
     },
     {
       "id": "shuttle_gen_2330",
@@ -154,7 +173,10 @@
       "name": "General shuttle 23:30 (to Southern Cross, from Flinders St coach bays)",
       "stop_id": "coach_bays",
       "depart": "23:30",
-      "capacity": 600
+      "capacity": 600,
+      "confirmed_remaining": 600,
+      "capacity_confirmed_at": "2026-10-01T09:00:00+10:00",
+      "capacity_valid_until": "2026-12-31T23:59:00+11:00"
     }
   ],
   "taxis": [
@@ -164,7 +186,11 @@
       "name": "Accessible taxis from 22:50",
       "stop_id": "accessible_taxi_rank",
       "depart": "22:50",
-      "capacity": 32
+      "capacity": 32,
+      "confirmed_remaining": 32,
+      "capacity_confirmed_at": "2026-10-01T09:00:00+10:00",
+      "capacity_valid_until": "2026-12-31T23:59:00+11:00",
+      "step_free": true
     },
     {
       "id": "acc_taxi_2330",
@@ -172,7 +198,11 @@
       "name": "Accessible taxis from 23:30",
       "stop_id": "accessible_taxi_rank",
       "depart": "23:30",
-      "capacity": 32
+      "capacity": 32,
+      "confirmed_remaining": 32,
+      "capacity_confirmed_at": "2026-10-01T09:00:00+10:00",
+      "capacity_valid_until": "2026-12-31T23:59:00+11:00",
+      "step_free": true
     }
   ],
   "pickup": [

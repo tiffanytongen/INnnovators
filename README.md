@@ -56,6 +56,23 @@ Everything happens in the phone app (`mobile/`). A switch at the top flips betwe
 
 The laptop runs a small server (`npm start`, port 3000) with no screens: it holds the API key, calls Claude, stores plans and sends updates to phones.
 
+## Weather (Organizer → Weather tab)
+
+Live forecast from Meteosource for the exit window, then the AI re-checks attendees' journeys for it (rain on open paths, waiting outside, wind) within their crowd-allocated gate and wave. Real changes become proposals; nothing reaches a phone until a named organizer approves.
+
+Add to `.env.local` (then restart `npm start`):
+
+```
+METEOSOURCE_API_KEY=your-key
+METEOSOURCE_TIER=free
+FESTIVAL_LATITUDE=-37.8183
+FESTIVAL_LONGITUDE=144.9739
+FESTIVAL_TIMEZONE=Australia/Melbourne
+FESTIVAL_DATE=2026-10-08   # the night you demo; the free tier forecasts the next ~day
+```
+
+Terminal version: `npm run weather:check`. Tests: `node --import tsx --test tests/*.test.ts`.
+
 ## Demo script (≈2 min, one or two phones)
 
 1. Participant → Mei: home screen says everything's normal; her way home is Gate C, 23:07 train.
