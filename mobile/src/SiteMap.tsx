@@ -20,6 +20,7 @@ type Props = {
   closedPlaces?: string[];
   storm?: boolean;
   highlight?: { route_id: string; gate_id: string; dest_id?: string; meetup_id?: string | null } | null;
+  gateDelta?: Record<string, number>; // organizer view: people gained per gate
 };
 
 const INK = "#141414";
@@ -27,7 +28,7 @@ const RED = "#DC2626";
 const PAD = 48;
 const pts = (p: Pt[]) => p.map((q) => q.join(",")).join(" ");
 
-export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight }: Props) {
+export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight, gateDelta }: Props) {
   const [, , W0, H] = map.viewBox;
   const W = W0 + PAD;
   const pos = (id: string) => map.gates.find((g) => g.id === id) ?? map.places.find((p) => p.id === id) ?? map.outside.find((o) => o.id === id);
@@ -44,7 +45,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
         <Polygon points={pts(map.site)} fill="#E6EDD8" stroke="#C9D4B4" strokeWidth={1.5} />
 
         {Object.entries(map.routes).map(([id, p]) => (
-          <Polyline key={id} points={pts(p)} fill="none" stroke="#B9B4A9" strokeWidth={map.covered[id] ? 2.5 : 1.5} strokeDasharray={map.covered[id] ? undefined : "4 3"} opacity={0.35} />
+          <Polyline key={id} points={pts(p)} fill="none" stroke={map.covered[id] ? "#9C978C" : "#B9B4A9"} strokeWidth={map.covered[id] ? 2.5 : 1.5} strokeDasharray={map.covered[id] ? undefined : "4 3"} opacity={highlight ? 0.35 : storm && !map.covered[id] ? 0.25 : 0.9} />
         ))}
         {Object.entries(map.connections).map(([id, p]) => (
           <Polyline key={id} points={pts(p)} fill="none" stroke="#B9B4A9" strokeWidth={1} strokeDasharray="2 3" opacity={storm && !map.covered[id] ? 0.15 : 0.35} />
@@ -85,6 +86,12 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
               <Circle cx={g.x} cy={g.y} r={active ? 12 : 10} fill={closed ? RED : active ? "#FFD400" : INK} stroke="#fff" strokeWidth={2} />
               <SvgText x={g.x} y={g.y + 4} textAnchor="middle" fontSize={active ? 13 : 11} fontWeight="900" fill={active ? INK : "#fff"}>{closed ? "✕" : g.id.replace("gate_", "")}</SvgText>
               {closed && <SvgText x={g.x + 14} y={g.y + 22} fontSize={8} fontWeight="800" fill={RED}>{`Gate ${g.id.replace("gate_", "")} closed`}</SvgText>}
+              {!closed && (gateDelta?.[g.id] ?? 0) > 0 && (
+                <G>
+                  <Rect x={g.x + 12} y={g.y - 22} width={46} height={14} rx={7} fill="#FFD400" />
+                  <SvgText x={g.x + 35} y={g.y - 12} textAnchor="middle" fontSize={8} fontWeight="800" fill={INK}>{`+${gateDelta![g.id].toLocaleString()}`}</SvgText>
+                </G>
+              )}
             </G>
           );
         })}

@@ -2,7 +2,7 @@
 // Deterministic so the number is trustworthy; Claude only explains the result (see /api/premortem/explain).
 import fs from "node:fs";
 import path from "node:path";
-import { loadProfiles, scenarios, transport, type Profile, type Service } from "./data";
+import { loadProfiles, nameOf, scenarios, transport, type Profile, type Service } from "./data";
 import { feasibleOptions, type Option } from "./options";
 
 const FIXES_PATH = path.join(process.cwd(), "data", "state", "premortem-fixes.json");
@@ -24,15 +24,15 @@ function groupOf(p: Profile) {
   return { key: `${need}|${p.home.mode}`, label: `${need} ${home}` };
 }
 
-function whyStuck(p: Profile, options: Option[], seatsLeft: Map<string, number>): string {
+function whyStuck(p: Profile, options: Option[]): string {
   if (options.length === 0) {
     const sf = p.access.step_free || p.access.wheelchair;
     return sf
-      ? "No step-free route that is open (and covered, if storming) reaches their way home"
-      : "No open route reaches their way home in time";
+      ? "No open, step-free (and covered, if storming) route reaches their way home"
+      : "No open route gets them home in time";
   }
   const pools = [...new Set(options.map((o) => o.transport.ref_id))];
-  return `Every option is a limited-seat service and all are full (${pools.map((id) => `${id}: ${Math.max(0, seatsLeft.get(id) ?? 0)} left`).join(", ")})`;
+  return `Every way home they can use is full: ${pools.map((id) => nameOf(id)).join(", ")}`;
 }
 
 export function runScenario(scenario: string, profiles: Profile[], extra: Service[]): ScenarioResult {
@@ -45,7 +45,7 @@ export function runScenario(scenario: string, profiles: Profile[], extra: Servic
   const needSeat: typeof rows = [];
 
   for (const r of rows) {
-    if (r.options.length === 0) stuck.push({ p: r.p, reason: whyStuck(r.p, [], seatsLeft), people: r.p.weight });
+    if (r.options.length === 0) stuck.push({ p: r.p, reason: whyStuck(r.p, []), people: r.p.weight });
     else if (r.options.some((o) => !limited(o))) continue; // train / pickup: no seat limit modelled
     else needSeat.push(r);
   }
@@ -62,7 +62,7 @@ export function runScenario(scenario: string, profiles: Profile[], extra: Servic
       remaining -= take;
       if (!remaining) break;
     }
-    if (remaining) stuck.push({ p: r.p, reason: whyStuck(r.p, r.options, seatsLeft), people: remaining });
+    if (remaining) stuck.push({ p: r.p, reason: whyStuck(r.p, r.options), people: remaining });
   }
 
   const groups = new Map<string, Group>();

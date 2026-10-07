@@ -45,26 +45,26 @@ For filming and the airplane-mode moment, use the production build (the service 
 npm run build && npm start
 ```
 
-## Pages
+## The app (Expo Go)
 
-| URL | What |
+Everything happens in the phone app (`mobile/`). A switch at the top flips between the two roles for the demo:
+
+| Role | What it does |
 |---|---|
-| `/demo` | Organiser console + Mei, Tom, Jake phones side by side |
-| `/organiser` | Free text → AI scenario → preview → Approve |
-| `/me/{person_id}` | Attendee PWA (works offline after first load) |
-| `/signup` | 30-second sign-up |
-| `/organiser/premortem` | Who has no viable plan per scenario; add a resource, re-run |
-| `/api/wallpaper/{person_id}` | Lock-screen PNG: gate, transport, meetup per scenario |
+| 🎟 **Participant** | Pick Mei / Tom / Jake → home screen ("Hi Mei", status, your way home + map) → full plan, "Doesn't work for me", works in airplane mode |
+| 🦺 **Organizer** | **Something changed**: type it → AI check → map + what people will see → Approve & send. **Pre-mortem**: who'd have no way home, explain with AI, add a resource → re-run |
 
-## Demo script (≈2 min)
+The laptop runs a small server (`npm start`, port 3000) with no screens: it holds the API key, calls Claude, stores plans and sends updates to phones.
 
-1. `/demo`: three phones on Plan A. Mei's is in Mandarin.
-2. Console: **Analyse** the pre-filled sentence → check chips + preview (affected count, 3 sample messages, simulated SMS to Jake's parent) → **Approve & send**.
-3. Phones switch to three different Plan Bs.
-4. On a real phone (or DevTools → Network → Offline), reload Mei's page: plan, gate, platform and meetup still there. Tap **这个不适合我** to see the next option offline.
-5. `/organiser/premortem`: storm scenario shows **140** with no viable plan → add an accessible shuttle run 23:05 / 150 seats → **0**. Click **reset** after filming.
+## Demo script (≈2 min, one or two phones)
 
-Reset between takes: **Reset everyone to Plan A** in the console.
+1. Participant → Mei: home screen says everything's normal; her way home is Gate C, 23:07 train.
+2. Organizer → "Something changed": **Check** the pre-filled sentence → see the map (Gate A closed, +2,162 at Gate B) and what Mei, Tom and Jake will see → **Approve & send**.
+3. Participant → Mei: phone buzzes, yellow "Plans changed" card → tap → Gate C, 22:52, in Mandarin, with her route on the map.
+4. Airplane mode on: plan and map still there; "这个不适合我" shows the next option offline.
+5. Organizer → Pre-mortem: storm shows **140** → add accessible shuttle 23:05 / 150 seats → **0**.
+
+Reset between takes: Organizer → "All clear: put everyone back on Plan A", and "reset" under the pre-mortem fix.
 
 ## How it fits together
 
@@ -74,7 +74,7 @@ Reset between takes: **Reset everyone to Plan A** in the console.
 - `lib/plan.ts`: validator. Every ID, departure and time in the localised text must match the data; otherwise the plan is rejected and regenerated with the errors (3 tries, then a labelled rules fallback). Medical flags force `needs_human`.
 - `lib/trigger.ts`: ed25519-signed trigger `CODE|issued_at|sig`. Phones verify with a public key cached in their bundle.
 - `lib/premortem.ts`: same rules engine plus seat limits, every profile × every scenario. Deterministic count; Claude only explains it.
-- `public/sw.js`: caches the page shell + plan bundle. `/api/trigger` is never cached: **a trigger needs some connection; the plan itself doesn't.**
+- `mobile/`: the app. Plans, map and trigger key are saved on the phone (AsyncStorage). Updates need *some* connection; the plan itself doesn't.
 
 Honesty notes: SMS and push are simulated (phones poll `/api/trigger`). The EMP sections cited are MOCK.
 
