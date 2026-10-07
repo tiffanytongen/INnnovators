@@ -76,7 +76,7 @@ Terminal version: `npm run weather:check`. Tests: `node --import tsx --test test
 ## Demo script (≈2 min, one or two phones)
 
 1. Participant → Mei: Plan A, best time to leave 22:30, Gate B → Sandringham 23:07 (Mandarin).
-2. Organizer → Tonight: "Plan B is spreading departures" (6,388 in a second wave). **Check** the pre-filled sentence → triage: solved automatically vs **140 need you**; 9,748 leave in waves so no gate is overloaded → simulated SMS link → **Approve & send**.
+2. Organizer → Tonight: "Plan B is spreading departures" (6,387 in a second wave). **Check** the pre-filled sentence → triage: solved automatically vs **140 need you**; 9,747 leave in waves so no gate is overloaded → simulated SMS link → **Approve & send**.
 3. Participant → Mei: Plan B, leave 22:30, Gate C → 22:52 (Mandarin). Start route shows the map; "Why this plan" shows ✓ covered, ✓ avoids closed Gate A.
 4. Airplane mode on: the plan stays; "这个不适合我" shows the next option offline.
 5. Organizer → Pre-mortem: severe weather → **140** → +1 accessible shuttle at Gate D → **Apply** → **140 → 0**. Also found: River Stage 30 min late → 353 shuttle passengers.

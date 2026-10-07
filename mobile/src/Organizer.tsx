@@ -19,7 +19,7 @@ const CAUSE: Record<ScenarioPart["type"], string> = {
 
 type Parsed = { code: string | null; parts: ScenarioPart[]; human_only: { issue: string; why: string }[]; unmatched: string[] };
 type Preview = {
-  code: string; total_people: number; affected_people: number; no_plan_people: number; waited_people: number; no_plan_groups: { label: string; people: number }[];
+  code: string; total_people: number; affected_people: number; rerouted_people: number; no_plan_people: number; waited_people: number; no_plan_groups: { label: string; people: number }[];
   samples: { person_id: string; name: string; lang: string; plan: { text_localised: string; action: string } | null }[];
   simulated_sms: { to: string; text: string }[];
   needs_human: { name: string; reason: string }[];
@@ -127,7 +127,7 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
     });
 
   const total = (preview ?? normal)?.total_people;
-  const solved = preview ? preview.affected_people - preview.no_plan_people : 0;
+  const solved = preview ? preview.rerouted_people : 0; // rerouted because of the disruption; wave-only changes are counted separately
   const cause = parts[0] ? CAUSE[parts[0].type] : "a change at the venue";
 
   return (

@@ -1,6 +1,6 @@
 // What staff see before approving: who's affected, sample messages, simulated SMS, human-only flags.
-import { loadProfiles, nameOf, type Profile } from "./data";
-import { worldFor, closedPlaces } from "./options";
+import { loadProfiles, nameOf, type Profile, type Service } from "./data";
+import { worldFor, closedPlaces, feasibleOptions, type Option } from "./options";
 import { allocate } from "./allocate";
 import { mapPayload } from "./map";
 import { parseScenario, pickCachedScenario, partToCode, describePart } from "./scenario";
@@ -8,12 +8,15 @@ import { readPlanFile } from "./generate";
 import { groupStuck, readFixes } from "./premortem";
 import type { Plan } from "./plan";
 
-// What each person is told = their first allocated chunk (gate, transport, wave). Compare scenario vs normal night.
 type Alloc = ReturnType<typeof allocate>;
-const told = (al: Alloc, id: string) => {
-  const c = al.byPerson[id]?.[0];
-  return c ? `${c.option.gate_id}|${c.option.route_id}|${c.option.transport.ref_id}|${c.option.transport.depart}|${c.delay}` : "none";
-};
+
+// "Rerouted" = the disruption itself changed this person's best journey (gate, path, transport or departure),
+// judged before crowd balancing. Crowd balancing (later waves, spreading across gates) is NOT a reroute;
+// it's reported separately as waves, so the two are never double-counted.
+const journey = (o?: Option) => (o ? `${o.gate_id}|${o.route_id}|${o.transport.ref_id}|${o.transport.depart}` : "none");
+const disruptionChanged = (p: Profile, code: string, fixes: Service[]) =>
+  journey(feasibleOptions(p, "NORMAL", fixes)[0]) !== journey(feasibleOptions(p, code, fixes)[0]);
+
 const peopleByGate = (al: Alloc) => {
   const g: Record<string, number> = {};
   for (const chunks of Object.values(al.byPerson)) for (const c of chunks) g[c.option.gate_id] = (g[c.option.gate_id] ?? 0) + c.people;
@@ -41,7 +44,9 @@ export function buildPreview(code: string) {
   const fixes = readFixes();
   const normal = allocate("NORMAL", profiles, fixes);
   const now = allocate(code, profiles, fixes);
-  const affected = profiles.filter((p) => told(normal, p.id) !== told(now, p.id));
+  const stuck = new Set(now.stuck.map((x) => x.p.id));
+  const affected = profiles.filter((p) => disruptionChanged(p, code, fixes));
+  const rerouted = affected.filter((p) => !stuck.has(p.id)); // solved automatically: excludes people who need intervention
   // Net people gained/lost per gate vs a normal night, for the map badges.
   const before = peopleByGate(normal), after = peopleByGate(now);
   const gateDelta: Record<string, number> = {};
@@ -51,8 +56,7 @@ export function buildPreview(code: string) {
   const w = worldFor(parts);
   const byPart = parts.map((part) => {
     const c = partToCode(part);
-    const single = allocate(c, profiles, fixes);
-    return { code: c, label: describePart(part), people: profiles.filter((p) => told(normal, p.id) !== told(single, p.id)).reduce((s, p) => s + p.weight, 0) };
+    return { code: c, label: describePart(part), people: profiles.filter((p) => disruptionChanged(p, c, fixes)).reduce((s, p) => s + p.weight, 0) };
   });
 
   const samples = profiles
@@ -78,7 +82,8 @@ export function buildPreview(code: string) {
   return {
     code,
     total_people: total,
-    affected_people: affected.reduce((s, p) => s + p.weight, 0),
+    affected_people: affected.reduce((s, p) => s + p.weight, 0), // journey changed by the disruption (incl. people with no viable plan)
+    rerouted_people: rerouted.reduce((s, p) => s + p.weight, 0), // of those, solved automatically
     no_plan_people: now.stuck.reduce((n, x) => n + x.people, 0), // same crowd allocation as the pre-mortem
     no_plan_groups: groupStuck(now.stuck).map(({ label, people }) => ({ label, people })),
     waited_people: now.waited,
