@@ -1,0 +1,96 @@
+{
+  "_note": "Combinable disruption scenarios. A trigger code joins parts with '+', e.g. STORM+GATE_A+TRAIN_SAND_25+SHUTTLE_FULL. NORMAL = Plan A.",
+  "types": [
+    {
+      "type": "STORM",
+      "code_pattern": "STORM",
+      "label": "Storm cell",
+      "params": {
+        "at": "23:00"
+      },
+      "effects": [
+        "Everyone should be under cover or on transport before 23:00",
+        "Only covered routes and covered gate connections should be used",
+        "Uncovered pickup zones close (pickup_zone_1)",
+        "The shuttle stop has a covered shelter, but in a storm reach it only via the covered Gate D ramp walkway (the Gate A path is uncovered)"
+      ],
+      "emp_section": "EMP s4.2 Severe weather (MOCK)"
+    },
+    {
+      "type": "GATE_CLOSED",
+      "code_pattern": "GATE_{gate}",
+      "example": "GATE_A",
+      "label": "Gate closed",
+      "params": {
+        "gate": "A|B|C|D"
+      },
+      "effects": [
+        "The named gate cannot be used",
+        "Places only reachable via that gate close (e.g. Gate A closed closes pickup_zone_1)"
+      ],
+      "emp_section": "EMP s5.1 Gate closure (MOCK)"
+    },
+    {
+      "type": "TRAIN_DELAY",
+      "code_pattern": "TRAIN_{line_code}_{mins}",
+      "example": "TRAIN_SAND_25",
+      "label": "Train line delayed",
+      "params": {
+        "line_code": "SAND|FRANK|BELG|LILY|CRAIG|WERR|HURST|PAK",
+        "mins": "integer"
+      },
+      "effects": [
+        "Every departure on that line leaves {mins} minutes later than timetabled"
+      ],
+      "emp_section": "EMP s6.3 Public transport disruption (MOCK)"
+    },
+    {
+      "type": "SHUTTLE_FULL",
+      "code_pattern": "SHUTTLE_FULL",
+      "label": "Accessible shuttle full",
+      "params": {},
+      "effects": [
+        "shuttle_acc_2245 has no seats left; existing bookings on it cannot be honoured",
+        "shuttle_acc_2320 (backup) still has seats"
+      ],
+      "emp_section": "EMP s7.4 Accessible transport (MOCK)"
+    },
+    {
+      "type": "HEAT",
+      "code_pattern": "HEAT",
+      "label": "Extreme heat",
+      "params": {},
+      "effects": [
+        "Prefer covered/shaded routes",
+        "Plans should name a water point",
+        "People with medical or heat-sensitive conditions should be flagged needs_human"
+      ],
+      "emp_section": "EMP s4.4 Extreme heat (MOCK)"
+    },
+    {
+      "type": "SET_DELAY",
+      "code_pattern": "SET_{stage}_{mins}",
+      "example": "SET_RIVER_30",
+      "label": "Set running late",
+      "params": {
+        "stage": "RIVER|LAWN|TENT",
+        "mins": "integer"
+      },
+      "effects": [
+        "That stage's remaining sets finish {mins} minutes later; leaving times shift accordingly"
+      ],
+      "emp_section": "EMP s3.2 Program changes (MOCK)"
+    }
+  ],
+  "demo_scenario": "STORM+GATE_A+TRAIN_SAND_25+SHUTTLE_FULL",
+  "precompute": [
+    "NORMAL",
+    "STORM",
+    "GATE_A",
+    "TRAIN_SAND_25",
+    "SHUTTLE_FULL",
+    "HEAT",
+    "SET_RIVER_30",
+    "STORM+GATE_A+TRAIN_SAND_25+SHUTTLE_FULL"
+  ]
+}

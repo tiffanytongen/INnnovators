@@ -1,0 +1,382 @@
+{
+  "_note": "Schematic layout of the fictional Riverside site (Birrarung Marr-style riverfront park). Coordinates in a 400x270 box. Every id matches site.json.",
+  "viewBox": [
+    0,
+    0,
+    400,
+    270
+  ],
+  "site": [
+    [
+      70,
+      45
+    ],
+    [
+      370,
+      45
+    ],
+    [
+      370,
+      215
+    ],
+    [
+      70,
+      215
+    ]
+  ],
+  "river": {
+    "label": "Yarra River",
+    "y": 238
+  },
+  "outside": [
+    {
+      "id": "flinders_st",
+      "x": 135,
+      "y": 16,
+      "label": "Flinders St Station"
+    },
+    {
+      "id": "pickup_zone_1",
+      "x": 22,
+      "y": 128,
+      "label": "Pickup 1"
+    },
+    {
+      "id": "shuttle_stop_batman_ave",
+      "x": 22,
+      "y": 165,
+      "label": "Shuttle stop"
+    },
+    {
+      "id": "accessible_taxi_rank",
+      "x": 22,
+      "y": 196,
+      "label": "Accessible taxis"
+    },
+    {
+      "id": "pickup_zone_3",
+      "x": 50,
+      "y": 228,
+      "label": "Pickup 3"
+    },
+    {
+      "id": "pickup_zone_2",
+      "x": 318,
+      "y": 18,
+      "label": "Pickup 2"
+    }
+  ],
+  "gates": [
+    {
+      "id": "gate_A",
+      "x": 70,
+      "y": 140
+    },
+    {
+      "id": "gate_B",
+      "x": 300,
+      "y": 45
+    },
+    {
+      "id": "gate_C",
+      "x": 140,
+      "y": 45
+    },
+    {
+      "id": "gate_D",
+      "x": 70,
+      "y": 198
+    }
+  ],
+  "places": [
+    {
+      "id": "river_stage",
+      "x": 140,
+      "y": 172,
+      "label": "River Stage",
+      "kind": "stage"
+    },
+    {
+      "id": "lawn_stage",
+      "x": 305,
+      "y": 120,
+      "label": "Lawn Stage",
+      "kind": "stage"
+    },
+    {
+      "id": "tent_stage",
+      "x": 215,
+      "y": 82,
+      "label": "Tent Stage",
+      "kind": "stage"
+    },
+    {
+      "id": "accessible_platform",
+      "x": 175,
+      "y": 200,
+      "label": "Accessible platform",
+      "kind": "access"
+    },
+    {
+      "id": "food_trucks",
+      "x": 240,
+      "y": 150,
+      "label": "Food trucks",
+      "kind": "food"
+    },
+    {
+      "id": "quiet_zone",
+      "x": 345,
+      "y": 175,
+      "label": "Quiet zone",
+      "kind": "small"
+    },
+    {
+      "id": "info_tent_gate_A",
+      "x": 88,
+      "y": 125,
+      "label": "Info",
+      "kind": "info"
+    },
+    {
+      "id": "info_tent_gate_C",
+      "x": 158,
+      "y": 60,
+      "label": "Info",
+      "kind": "info"
+    },
+    {
+      "id": "info_tent_gate_D",
+      "x": 88,
+      "y": 186,
+      "label": "Info",
+      "kind": "info"
+    }
+  ],
+  "routes": {
+    "route_A_open": [
+      [
+        140,
+        172
+      ],
+      [
+        105,
+        155
+      ],
+      [
+        70,
+        140
+      ]
+    ],
+    "route_B_lawn": [
+      [
+        305,
+        120
+      ],
+      [
+        300,
+        80
+      ],
+      [
+        300,
+        45
+      ]
+    ],
+    "route_B_canopy": [
+      [
+        140,
+        172
+      ],
+      [
+        240,
+        150
+      ],
+      [
+        285,
+        95
+      ],
+      [
+        300,
+        45
+      ]
+    ],
+    "covered_path_2": [
+      [
+        140,
+        172
+      ],
+      [
+        190,
+        120
+      ],
+      [
+        215,
+        82
+      ],
+      [
+        140,
+        45
+      ]
+    ],
+    "route_C_open": [
+      [
+        305,
+        120
+      ],
+      [
+        215,
+        82
+      ],
+      [
+        140,
+        45
+      ]
+    ],
+    "ramp_path_D": [
+      [
+        175,
+        200
+      ],
+      [
+        120,
+        205
+      ],
+      [
+        70,
+        198
+      ]
+    ]
+  },
+  "connections": {
+    "gate_A>pickup_zone_1": [
+      [
+        70,
+        140
+      ],
+      [
+        22,
+        128
+      ]
+    ],
+    "gate_A>shuttle_stop_batman_ave": [
+      [
+        70,
+        140
+      ],
+      [
+        22,
+        165
+      ]
+    ],
+    "gate_A>flinders_st": [
+      [
+        70,
+        140
+      ],
+      [
+        50,
+        70
+      ],
+      [
+        135,
+        16
+      ]
+    ],
+    "gate_B>pickup_zone_2": [
+      [
+        300,
+        45
+      ],
+      [
+        318,
+        18
+      ]
+    ],
+    "gate_B>flinders_st": [
+      [
+        300,
+        45
+      ],
+      [
+        250,
+        22
+      ],
+      [
+        135,
+        16
+      ]
+    ],
+    "gate_C>flinders_st": [
+      [
+        140,
+        45
+      ],
+      [
+        135,
+        16
+      ]
+    ],
+    "gate_C>pickup_zone_2": [
+      [
+        140,
+        45
+      ],
+      [
+        230,
+        30
+      ],
+      [
+        318,
+        18
+      ]
+    ],
+    "gate_D>accessible_taxi_rank": [
+      [
+        70,
+        198
+      ],
+      [
+        22,
+        196
+      ]
+    ],
+    "gate_D>shuttle_stop_batman_ave": [
+      [
+        70,
+        198
+      ],
+      [
+        22,
+        165
+      ]
+    ],
+    "gate_D>pickup_zone_3": [
+      [
+        70,
+        198
+      ],
+      [
+        50,
+        228
+      ]
+    ],
+    "gate_D>flinders_st": [
+      [
+        70,
+        198
+      ],
+      [
+        40,
+        110
+      ],
+      [
+        50,
+        70
+      ],
+      [
+        135,
+        16
+      ]
+    ]
+  }
+}

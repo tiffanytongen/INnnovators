@@ -1,0 +1,531 @@
+{
+  "_note": "Fictional artists. River Stage headliner ends 22:30 each night.",
+  "stages": [
+    {
+      "id": "river_stage",
+      "name": "River Stage"
+    },
+    {
+      "id": "lawn_stage",
+      "name": "Lawn Stage"
+    },
+    {
+      "id": "tent_stage",
+      "name": "Tent Stage"
+    }
+  ],
+  "days": [
+    "Fri",
+    "Sat",
+    "Sun"
+  ],
+  "sets": [
+    {
+      "id": "set_fri_river_1",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "Velvet Harbour",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_fri_river_2",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "The Saltwater Kids",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_fri_river_3",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "Mira Okafor",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_fri_river_4",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "Lowlight Parade",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_fri_river_5",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "Kestrel & Bloom",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_fri_river_6",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "Neon Tidewater",
+      "start": "20:00",
+      "end": "20:50"
+    },
+    {
+      "id": "set_fri_river_7",
+      "day": "Fri",
+      "stage_id": "river_stage",
+      "artist": "Juniper Rae",
+      "start": "21:15",
+      "end": "22:30",
+      "headliner": true
+    },
+    {
+      "id": "set_fri_lawn_1",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "Static Orchard",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_fri_lawn_2",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "The Paper Moons",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_fri_lawn_3",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "Ilse Varga",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_fri_lawn_4",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "Copperline",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_fri_lawn_5",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "Hollow Gold",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_fri_lawn_6",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "Sable Coast",
+      "start": "20:45",
+      "end": "21:45"
+    },
+    {
+      "id": "set_fri_lawn_7",
+      "day": "Fri",
+      "stage_id": "lawn_stage",
+      "artist": "Ruby Kowalczyk",
+      "start": "22:15",
+      "end": "23:00"
+    },
+    {
+      "id": "set_fri_tent_1",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "Glasshouse Choir",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_fri_tent_2",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "Dune Theory",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_fri_tent_3",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "Port Phillip Social",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_fri_tent_4",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "Ari Tanaka",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_fri_tent_5",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "The Midnight Ferry",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_fri_tent_6",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "Wren Collective",
+      "start": "20:45",
+      "end": "21:45"
+    },
+    {
+      "id": "set_fri_tent_7",
+      "day": "Fri",
+      "stage_id": "tent_stage",
+      "artist": "Bluestone Echo",
+      "start": "22:15",
+      "end": "23:00"
+    },
+    {
+      "id": "set_sat_river_1",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Ochre Sun",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_sat_river_2",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Pale Satellites",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_sat_river_3",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Tamsin Hale",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_sat_river_4",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Riverbend Trio",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_sat_river_5",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Lantern Club",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_sat_river_6",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Second Summer",
+      "start": "20:00",
+      "end": "20:50"
+    },
+    {
+      "id": "set_sat_river_7",
+      "day": "Sat",
+      "stage_id": "river_stage",
+      "artist": "Northcote Nights",
+      "start": "21:15",
+      "end": "22:30",
+      "headliner": true
+    },
+    {
+      "id": "set_sat_lawn_1",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "Indigo Rail",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_sat_lawn_2",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "Fable Street",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_sat_lawn_3",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "Moss & Marrow",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_sat_lawn_4",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "Kai Delacroix",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_sat_lawn_5",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "The Long Weekend",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_sat_lawn_6",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "Silver Gull",
+      "start": "20:45",
+      "end": "21:45"
+    },
+    {
+      "id": "set_sat_lawn_7",
+      "day": "Sat",
+      "stage_id": "lawn_stage",
+      "artist": "Brightwater",
+      "start": "22:15",
+      "end": "23:00"
+    },
+    {
+      "id": "set_sat_tent_1",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Yarra Static",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_sat_tent_2",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Coastal Drift",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_sat_tent_3",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Halcyon Days",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_sat_tent_4",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Polly Arden",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_sat_tent_5",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Southerly Buster",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_sat_tent_6",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Tin Roof Radio",
+      "start": "20:45",
+      "end": "21:45"
+    },
+    {
+      "id": "set_sat_tent_7",
+      "day": "Sat",
+      "stage_id": "tent_stage",
+      "artist": "Cassia Moon",
+      "start": "22:15",
+      "end": "23:00"
+    },
+    {
+      "id": "set_sun_river_1",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "The Late Trams",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_sun_river_2",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "Echo Valley",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_sun_river_3",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "Marlo Fenn",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_sun_river_4",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "Sunday Analog",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_sun_river_5",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "Gumleaf Disco",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_sun_river_6",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "Opal Hours",
+      "start": "20:00",
+      "end": "20:50"
+    },
+    {
+      "id": "set_sun_river_7",
+      "day": "Sun",
+      "stage_id": "river_stage",
+      "artist": "Harbourlights",
+      "start": "21:15",
+      "end": "22:30",
+      "headliner": true
+    },
+    {
+      "id": "set_sun_lawn_1",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "Fern Gully Five",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_sun_lawn_2",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "Lumen Twins",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_sun_lawn_3",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "Ivy Cartwright",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_sun_lawn_4",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "Low Tide Club",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_sun_lawn_5",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "Golden Mile",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_sun_lawn_6",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "Arcadia Rose",
+      "start": "20:45",
+      "end": "21:45"
+    },
+    {
+      "id": "set_sun_lawn_7",
+      "day": "Sun",
+      "stage_id": "lawn_stage",
+      "artist": "The Quiet Loud",
+      "start": "22:15",
+      "end": "23:00"
+    },
+    {
+      "id": "set_sun_tent_1",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "Night Bus Home",
+      "start": "14:00",
+      "end": "14:45"
+    },
+    {
+      "id": "set_sun_tent_2",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "Solenne",
+      "start": "15:15",
+      "end": "16:00"
+    },
+    {
+      "id": "set_sun_tent_3",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "Prism Bay",
+      "start": "16:30",
+      "end": "17:20"
+    },
+    {
+      "id": "set_sun_tent_4",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "Westgate",
+      "start": "17:50",
+      "end": "18:45"
+    },
+    {
+      "id": "set_sun_tent_5",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "Velvet Harbour",
+      "start": "19:15",
+      "end": "20:15"
+    },
+    {
+      "id": "set_sun_tent_6",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "The Saltwater Kids",
+      "start": "20:45",
+      "end": "21:45"
+    },
+    {
+      "id": "set_sun_tent_7",
+      "day": "Sun",
+      "stage_id": "tent_stage",
+      "artist": "Mira Okafor",
+      "start": "22:15",
+      "end": "23:00"
+    }
+  ]
+}

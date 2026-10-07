@@ -1,0 +1,338 @@
+{
+  "_note": "Fictional riverfront festival site (Fieldday × Riverside). All IDs are stable; the AI may only choose IDs from this file.",
+  "gates": [
+    {
+      "id": "gate_A",
+      "name": "Gate A (Main, River Stage)",
+      "covered": false,
+      "step_free": true,
+      "accessible": true,
+      "capacity_per_hour": 6000,
+      "connects_to": [
+        {
+          "id": "pickup_zone_1",
+          "walk_min": 3,
+          "covered": false,
+          "step_free": true
+        },
+        {
+          "id": "shuttle_stop_batman_ave",
+          "walk_min": 4,
+          "covered": false,
+          "step_free": true
+        },
+        {
+          "id": "flinders_st",
+          "walk_min": 12,
+          "covered": false,
+          "step_free": true
+        }
+      ]
+    },
+    {
+      "id": "gate_B",
+      "name": "Gate B (Lawn)",
+      "covered": true,
+      "step_free": false,
+      "accessible": false,
+      "capacity_per_hour": 3000,
+      "connects_to": [
+        {
+          "id": "pickup_zone_2",
+          "walk_min": 2,
+          "covered": true,
+          "step_free": false
+        },
+        {
+          "id": "flinders_st",
+          "walk_min": 15,
+          "covered": false,
+          "step_free": false
+        }
+      ]
+    },
+    {
+      "id": "gate_C",
+      "name": "Gate C (East, Tent Stage)",
+      "covered": true,
+      "step_free": false,
+      "accessible": false,
+      "capacity_per_hour": 4000,
+      "connects_to": [
+        {
+          "id": "flinders_st",
+          "walk_min": 6,
+          "covered": true,
+          "step_free": false,
+          "note": "Covered underpass with stairs down to Flinders St concourse"
+        },
+        {
+          "id": "pickup_zone_2",
+          "walk_min": 7,
+          "covered": false,
+          "step_free": false
+        }
+      ]
+    },
+    {
+      "id": "gate_D",
+      "name": "Gate D (Accessible, ramp)",
+      "covered": true,
+      "step_free": true,
+      "accessible": true,
+      "capacity_per_hour": 800,
+      "connects_to": [
+        {
+          "id": "accessible_taxi_rank",
+          "walk_min": 2,
+          "covered": true,
+          "step_free": true
+        },
+        {
+          "id": "shuttle_stop_batman_ave",
+          "walk_min": 5,
+          "covered": true,
+          "step_free": true,
+          "note": "Covered ramp walkway"
+        },
+        {
+          "id": "pickup_zone_3",
+          "walk_min": 4,
+          "covered": true,
+          "step_free": true
+        },
+        {
+          "id": "flinders_st",
+          "walk_min": 16,
+          "covered": false,
+          "step_free": true
+        }
+      ],
+      "priority_access": true
+    }
+  ],
+  "routes": [
+    {
+      "id": "route_A_open",
+      "name": "Open riverside path to Gate A",
+      "gate_id": "gate_A",
+      "from": [
+        "river_stage",
+        "lawn_stage"
+      ],
+      "covered": false,
+      "step_free": true,
+      "walk_min": 6
+    },
+    {
+      "id": "route_B_lawn",
+      "name": "Lawn path to Gate B",
+      "gate_id": "gate_B",
+      "from": [
+        "lawn_stage",
+        "river_stage"
+      ],
+      "covered": false,
+      "step_free": false,
+      "walk_min": 9
+    },
+    {
+      "id": "route_B_canopy",
+      "name": "Canopy walk to Gate B (via food trucks)",
+      "gate_id": "gate_B",
+      "from": [
+        "river_stage",
+        "lawn_stage",
+        "tent_stage"
+      ],
+      "covered": true,
+      "step_free": false,
+      "walk_min": 11
+    },
+    {
+      "id": "covered_path_2",
+      "name": "Covered path to Gate C (along the Tent Stage)",
+      "gate_id": "gate_C",
+      "from": [
+        "river_stage",
+        "tent_stage",
+        "lawn_stage"
+      ],
+      "covered": true,
+      "step_free": false,
+      "walk_min": 10
+    },
+    {
+      "id": "route_C_open",
+      "name": "Open path to Gate C",
+      "gate_id": "gate_C",
+      "from": [
+        "lawn_stage",
+        "tent_stage"
+      ],
+      "covered": false,
+      "step_free": false,
+      "walk_min": 8
+    },
+    {
+      "id": "ramp_path_D",
+      "name": "Covered step-free ramp path to Gate D (from accessible platform)",
+      "gate_id": "gate_D",
+      "from": [
+        "river_stage",
+        "accessible_platform",
+        "lawn_stage",
+        "tent_stage"
+      ],
+      "covered": true,
+      "step_free": true,
+      "walk_min": 12
+    }
+  ],
+  "places": [
+    {
+      "id": "river_stage",
+      "type": "stage",
+      "name": "River Stage"
+    },
+    {
+      "id": "lawn_stage",
+      "type": "stage",
+      "name": "Lawn Stage"
+    },
+    {
+      "id": "tent_stage",
+      "type": "stage",
+      "name": "Tent Stage"
+    },
+    {
+      "id": "accessible_platform",
+      "type": "accessible_platform",
+      "name": "Accessible viewing platform (River Stage, covered)",
+      "covered": true,
+      "step_free": true,
+      "staffed": true
+    },
+    {
+      "id": "quiet_zone",
+      "type": "quiet_zone",
+      "name": "Quiet zone (behind Lawn Stage)",
+      "covered": true,
+      "step_free": true
+    },
+    {
+      "id": "info_tent_gate_A",
+      "type": "info_tent",
+      "name": "Info tent at Gate A",
+      "covered": true,
+      "near_gate": "gate_A"
+    },
+    {
+      "id": "info_tent_gate_C",
+      "type": "info_tent",
+      "name": "Info tent at Gate C",
+      "covered": true,
+      "near_gate": "gate_C"
+    },
+    {
+      "id": "info_tent_gate_D",
+      "type": "info_tent",
+      "name": "Info tent at Gate D",
+      "covered": true,
+      "near_gate": "gate_D"
+    },
+    {
+      "id": "water_1",
+      "type": "water",
+      "name": "Water point (River Stage left)"
+    },
+    {
+      "id": "water_2",
+      "type": "water",
+      "name": "Water point (Lawn Stage)"
+    },
+    {
+      "id": "water_3",
+      "type": "water",
+      "name": "Water point (Tent Stage)"
+    },
+    {
+      "id": "toilets_1",
+      "type": "toilets",
+      "name": "Toilets (food trucks)",
+      "accessible": true
+    },
+    {
+      "id": "toilets_2",
+      "type": "toilets",
+      "name": "Toilets (Tent Stage)",
+      "accessible": false
+    },
+    {
+      "id": "pickup_zone_1",
+      "type": "pickup_zone",
+      "name": "Pickup Zone 1 (Batman Ave, outside Gate A)",
+      "covered": false,
+      "staffed": false,
+      "via_gates": [
+        "gate_A"
+      ]
+    },
+    {
+      "id": "pickup_zone_2",
+      "type": "pickup_zone",
+      "name": "Pickup Zone 2 (Lawn side, outside Gate B)",
+      "covered": true,
+      "staffed": true,
+      "via_gates": [
+        "gate_B",
+        "gate_C"
+      ]
+    },
+    {
+      "id": "pickup_zone_3",
+      "type": "pickup_zone",
+      "name": "Pickup Zone 3 (accessible drop-off, outside Gate D)",
+      "covered": true,
+      "staffed": true,
+      "step_free": true,
+      "via_gates": [
+        "gate_D"
+      ]
+    },
+    {
+      "id": "shuttle_stop_batman_ave",
+      "type": "shuttle_stop",
+      "name": "Shuttle stop, Batman Ave (covered shelter)",
+      "covered": true,
+      "via_gates": [
+        "gate_A",
+        "gate_D"
+      ]
+    },
+    {
+      "id": "accessible_taxi_rank",
+      "type": "taxi_rank",
+      "name": "Accessible taxi rank (outside Gate D)",
+      "covered": true,
+      "step_free": true,
+      "via_gates": [
+        "gate_D"
+      ]
+    },
+    {
+      "id": "flinders_st",
+      "type": "station",
+      "name": "Flinders Street Station"
+    }
+  ],
+  "meetup_points": [
+    "info_tent_gate_A",
+    "info_tent_gate_C",
+    "info_tent_gate_D",
+    "accessible_platform",
+    "quiet_zone",
+    "pickup_zone_2",
+    "pickup_zone_3"
+  ]
+}

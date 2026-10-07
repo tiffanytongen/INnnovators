@@ -1,0 +1,176 @@
+{
+  "_note": "Fictional Saturday-night departures from Flinders Street (PTV-style). Times are 24h HH:MM; after midnight use 24:xx.",
+  "station_id": "flinders_st",
+  "trains": [
+    {
+      "line": "Sandringham",
+      "code": "SAND",
+      "platform": 6,
+      "departures": [
+        "22:07",
+        "22:27",
+        "22:47",
+        "23:07",
+        "23:27",
+        "23:47",
+        "24:07",
+        "24:37"
+      ]
+    },
+    {
+      "line": "Frankston",
+      "code": "FRANK",
+      "platform": 8,
+      "departures": [
+        "22:04",
+        "22:24",
+        "22:44",
+        "23:04",
+        "23:24",
+        "23:44",
+        "24:14",
+        "24:44"
+      ]
+    },
+    {
+      "line": "Belgrave",
+      "code": "BELG",
+      "platform": 2,
+      "departures": [
+        "22:10",
+        "22:40",
+        "23:10",
+        "23:40",
+        "24:10"
+      ]
+    },
+    {
+      "line": "Lilydale",
+      "code": "LILY",
+      "platform": 3,
+      "departures": [
+        "22:15",
+        "22:45",
+        "23:15",
+        "23:45",
+        "24:15"
+      ]
+    },
+    {
+      "line": "Craigieburn",
+      "code": "CRAIG",
+      "platform": 10,
+      "departures": [
+        "22:12",
+        "22:42",
+        "23:12",
+        "23:42",
+        "24:12"
+      ]
+    },
+    {
+      "line": "Werribee",
+      "code": "WERR",
+      "platform": 12,
+      "departures": [
+        "22:09",
+        "22:39",
+        "23:09",
+        "23:39",
+        "24:09"
+      ]
+    },
+    {
+      "line": "Hurstbridge",
+      "code": "HURST",
+      "platform": 1,
+      "departures": [
+        "22:18",
+        "22:48",
+        "23:18",
+        "23:48",
+        "24:18"
+      ]
+    },
+    {
+      "line": "Pakenham",
+      "code": "PAK",
+      "platform": 9,
+      "departures": [
+        "22:06",
+        "22:26",
+        "22:46",
+        "23:06",
+        "23:26",
+        "23:46",
+        "24:16"
+      ]
+    }
+  ],
+  "shuttles": [
+    {
+      "id": "shuttle_acc_2245",
+      "kind": "accessible",
+      "name": "Accessible shuttle 22:45 (to Southern Cross & Richmond)",
+      "stop_id": "shuttle_stop_batman_ave",
+      "depart": "22:45",
+      "capacity": 60
+    },
+    {
+      "id": "shuttle_acc_2320",
+      "kind": "accessible",
+      "name": "Accessible shuttle 23:20 (backup run)",
+      "stop_id": "shuttle_stop_batman_ave",
+      "depart": "23:20",
+      "capacity": 30
+    },
+    {
+      "id": "shuttle_gen_2250",
+      "kind": "general",
+      "name": "General shuttle 22:50 (to Southern Cross)",
+      "stop_id": "shuttle_stop_batman_ave",
+      "depart": "22:50",
+      "capacity": 1200
+    },
+    {
+      "id": "shuttle_gen_2330",
+      "kind": "general",
+      "name": "General shuttle 23:30 (to Southern Cross)",
+      "stop_id": "shuttle_stop_batman_ave",
+      "depart": "23:30",
+      "capacity": 600
+    }
+  ],
+  "taxis": [
+    {
+      "id": "acc_taxi_2250",
+      "kind": "accessible_taxi",
+      "name": "Accessible taxis from 22:50",
+      "stop_id": "accessible_taxi_rank",
+      "depart": "22:50",
+      "capacity": 32
+    },
+    {
+      "id": "acc_taxi_2330",
+      "kind": "accessible_taxi",
+      "name": "Accessible taxis from 23:30",
+      "stop_id": "accessible_taxi_rank",
+      "depart": "23:30",
+      "capacity": 32
+    }
+  ],
+  "pickup": [
+    {
+      "zone_id": "pickup_zone_1",
+      "window": "22:30-23:30"
+    },
+    {
+      "zone_id": "pickup_zone_2",
+      "window": "22:30-24:00"
+    },
+    {
+      "zone_id": "pickup_zone_3",
+      "window": "22:30-24:00"
+    }
+  ]
+}
