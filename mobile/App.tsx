@@ -8,10 +8,11 @@ import { useFonts } from "expo-font";
 import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold, Figtree_800ExtraBold } from "@expo-google-fonts/figtree";
 import Participant from "./src/Participant";
 import Organizer from "./src/Organizer";
+import ContactPhone from "./src/ContactPhone";
 import { ATTENDEE, ORGANIZER, PLANB, F, defaultServer, store, type Pal } from "./src/theme";
 import { PalContext } from "./src/ui";
 
-type Mode = "participant" | "organizer";
+type Mode = "participant" | "organizer" | "contact";
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -51,19 +52,19 @@ export default function App() {
         <SafeAreaView style={{ flex: 1, backgroundColor: pal.band }} edges={["top"]}>
           {/* Demo role switch only (no wordmark). Left-aligned so Expo Go's floating dev button doesn't cover it. */}
           <View style={{ flexDirection: "row", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8, backgroundColor: pal.band }}>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {(["participant", "organizer"] as Mode[]).map((m) => {
+            <View style={{ flexDirection: "row", gap: 6 }}>
+              {(["participant", "organizer", "contact"] as Mode[]).map((m) => {
                 const on = mode === m;
                 return (
-                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 38, paddingHorizontal: 18, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.accent : pal.card }}>
-                    <Text style={{ fontFamily: F.bodySemi, fontSize: 14, color: on ? pal.onAccent : pal.ink }}>{m === "participant" ? "Attendee" : "Organizer"}</Text>
+                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.accent : pal.card }}>
+                    <Text style={{ fontFamily: F.bodySemi, fontSize: 14, color: on ? pal.onAccent : pal.ink }}>{m === "participant" ? "Attendee" : m === "organizer" ? "Organizer" : "Contact"}</Text>
                   </Pressable>
                 );
               })}
             </View>
           </View>
           <View style={{ flex: 1, backgroundColor: pal.bg }}>
-            {!ready ? null : mode === "participant" ? <Participant server={server} onServer={changeServer} onPlanB={onPlanB} /> : <Organizer server={server} />}
+            {!ready ? null : mode === "participant" ? <Participant server={server} onServer={changeServer} onPlanB={onPlanB} /> : mode === "organizer" ? <Organizer server={server} /> : <ContactPhone server={server} />}
           </View>
         </SafeAreaView>
       </PalContext.Provider>

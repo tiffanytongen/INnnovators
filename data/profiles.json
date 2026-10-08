@@ -82,7 +82,14 @@
       "group": null,
       "location_at_end": "lawn_stage",
       "must_see": [],
-      "notes": "First festival. Parent picking him up at Pickup Zone 1; parent's mobile on file for SMS updates."
+      "notes": "First festival. Parent picking him up at Pickup Zone 1; parent's mobile on file for SMS updates.",
+      "contact": {
+        "name": "Sarah",
+        "relationship": "Parent",
+        "phone_masked": "+61 ••• ••• 123",
+        "attendee_agreed": true,
+        "updated_at": "2026-10-08T00:00:00.000Z"
+      }
     },
     {
       "id": "p_001",

@@ -22,6 +22,7 @@ type Props = {
   highlight?: { route_id: string; gate_id: string; dest_id?: string; meetup_id?: string | null } | null;
   gateDelta?: Record<string, number>; // organizer view: people gained per gate
   accent?: string; // highlight colour for the person's gate / organizer badges
+  meetLabel?: string; // label on the highlighted meetup/place marker (default "Meet")
 };
 
 const INK = "#141414";
@@ -29,7 +30,7 @@ const RED = "#DC2626";
 const PAD = 48;
 const pts = (p: Pt[]) => p.map((q) => q.join(",")).join(" ");
 
-export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight, gateDelta, accent = "#B4472F" }: Props) {
+export default function SiteMap({ map, closedGates = [], closedPlaces = [], storm, highlight, gateDelta, accent = "#B4472F", meetLabel = "Meet" }: Props) {
   const relevant = new Set([highlight?.dest_id, highlight?.meetup_id, ...closedPlaces].filter(Boolean) as string[]);
   const [, , W0, H] = map.viewBox;
   const W = W0 + PAD;
@@ -101,7 +102,7 @@ export default function SiteMap({ map, closedGates = [], closedPlaces = [], stor
         {meet && (
           <G>
             <Circle cx={meet.x + 9} cy={meet.y - 9} r={5} fill={RED} stroke="#fff" strokeWidth={1.5} />
-            <SvgText x={meet.x + 17} y={meet.y - 6} fontSize={8} fontWeight="800" fill={RED}>Meet</SvgText>
+            <SvgText x={meet.x + 17} y={meet.y - 6} fontSize={8} fontWeight="800" fill={RED}>{meetLabel}</SvgText>
           </G>
         )}
         {route && (

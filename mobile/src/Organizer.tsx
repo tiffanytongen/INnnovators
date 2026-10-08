@@ -8,6 +8,7 @@ import { canonical, describePart, parseScenario, type ScenarioPart } from "../..
 import SiteMap, { type MapData } from "./SiteMap";
 import WeatherPanel from "./WeatherPanel";
 import CrowdPanel from "./CrowdPanel";
+import DemoControls from "./DemoControls";
 import { C, F, getJSON, postJSON, s } from "./theme";
 import { Btn, Card, Check, Field, Notice, Tile, Txt, usePal } from "./ui";
 
@@ -35,9 +36,10 @@ export default function Organizer({ server }: { server: string }) {
   const p = usePal();
   const [screen, setScreen] = useState<"tonight" | "premortem">("tonight");
   const [focus, setFocus] = useState<string | null>(null);
+  const [demo, setDemo] = useState(false);
   return (
     <View style={{ flex: 1, backgroundColor: p.bg }}>
-      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: p.band }}>
+      <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 20, paddingVertical: 10, backgroundColor: p.band, alignItems: "center" }}>
         {([["tonight", "Tonight"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => {
           const on = screen === k;
           return (
@@ -46,12 +48,18 @@ export default function Organizer({ server }: { server: string }) {
             </Pressable>
           );
         })}
+        <View style={{ flex: 1 }} />
+        {/* Discreet: for the recorded demo only */}
+        <Pressable accessibilityRole="button" accessibilityLabel="Demo controls" onPress={() => setDemo(!demo)} style={({ pressed }) => [{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 999, borderWidth: 1, borderColor: p.line }, pressed && s.pressed]}>
+          <Text style={{ fontFamily: F.bodySemi, fontSize: 13, color: p.sub }}>Demo</Text>
+        </Pressable>
       </View>
       {screen === "tonight" ? (
         <Tonight server={server} onFix={(code) => { setFocus(code); setScreen("premortem"); }} />
       ) : (
         <PremortemScreen server={server} focus={focus} />
       )}
+      {demo && <DemoControls server={server} onClose={() => setDemo(false)} />}
     </View>
   );
 }

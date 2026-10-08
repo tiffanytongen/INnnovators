@@ -11,6 +11,7 @@ export type Plan = Step & {
   source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean; needs_human_reason?: string | null;
   weather?: { status: string; source: string }; journey?: { main_tradeoff: string }; approved_by?: string;
 };
+export type LineupSet = { id: string; artist: string; stage_id: string; stage: string; start: string; end: string };
 export type Bundle = {
   profile: {
     id: string;
@@ -55,6 +56,7 @@ export type Bundle = {
   map?: MapData;
   closed?: Record<string, { gates: string[]; places: string[]; storm: boolean; leave?: string }>;
   service_kinds?: Record<string, string>;
+  lineup?: LineupSet[]; // must-see sets tonight (timetabled)
 };
 
 
@@ -129,6 +131,8 @@ export function normalizeBundle(value: unknown, personId: string): Bundle | null
     fetched_at: text(value.fetched_at) ? value.fetched_at : "",
     plan_updated_at: text(value.plan_updated_at) ? value.plan_updated_at : null,
     walking, closed, map: validMap(value.map) ? value.map : undefined,
+    lineup: (Array.isArray(value.lineup) ? value.lineup : []).filter((x): x is LineupSet =>
+      isRecord(x) && text(x.id) && text(x.artist) && text(x.stage_id) && text(x.stage) && text(x.start) && text(x.end)),
     service_kinds: Object.fromEntries(Object.entries(isRecord(value.service_kinds) ? value.service_kinds : {}).filter((entry): entry is [string, string] => text(entry[1]))),
   };
 }

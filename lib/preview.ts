@@ -34,7 +34,7 @@ export function planFor(personId: string, code: string): { plan: Plan | null; ke
 // a new pickup point, or a different time at the same point (e.g. waiting out a storm). Never sent for real.
 export function smsFor(p: Profile, plan: Plan, planA: Plan | null) {
   if (p.home.mode !== "pickup" || !textsContact(p)) return null;
-  const to = `${p.name}'s ${p.home.contact}${p.home.contact_phone ? ` (…${p.home.contact_phone})` : ""}`;
+  const to = p.contact ? `${p.contact.name}, ${p.name}'s ${p.contact.relationship.toLowerCase()} (${p.contact.phone_masked})` : `${p.name}'s ${p.home.contact}${p.home.contact_phone ? ` (…${p.home.contact_phone})` : ""}`;
   const where = nameOf(plan.transport.ref_id).replace(/ \(.*/, "");
   if (plan.notify_contact || (planA && planA.transport.ref_id !== plan.transport.ref_id))
     return { to, text: `Fieldday: pickup for ${p.name} has moved to ${where}, around ${plan.arrive}. ${p.name} has been told. Reply HELP for a volunteer.` };
