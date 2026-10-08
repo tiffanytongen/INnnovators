@@ -26,6 +26,8 @@ function shortPart(x: ScenarioPart): string {
     case "SHUTTLE_FULL": return "Shuttle full";
     case "HEAT": return "Extreme heat";
     case "SET_DELAY": return describePart(x).replace("running ", "");
+    case "PATH_CLOSED":
+    case "PLACE_CLOSED": return describePart(x);
   }
 }
 
@@ -181,6 +183,9 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
         store.set("planb:trigger", t);
         setTrigger(t);
         if (t.code !== "NORMAL") Vibration.vibrate([0, 250, 120, 250]);
+        // A new situation may come with plans written for it after this phone last synced: fetch them now
+        // (saved on the phone, so they keep working offline).
+        if (!bundle.plans[t.code]) refreshBundle();
       } catch {
         setOnline(false);
       }
@@ -188,7 +193,7 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
     poll();
     const id = setInterval(poll, 2000);
     return () => clearInterval(id);
-  }, [bundle, server]);
+  }, [bundle, server, refreshBundle]);
 
   const current = useMemo(() => {
     if (!bundle) return null;
@@ -201,7 +206,7 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
     const ranked = crowdAwarePlan(base, crowd, bundle.walking, here, bundle.closed?.[key]);
     return {
       plan: ranked.plan, key, exact: exact || code === "NORMAL", isPlanB: code !== "NORMAL",
-      zone: here, zones: supportedZones(bundle, base), unavailable: ranked.unavailable, rerouted: ranked.fromRoute,
+      zone: here, zones: supportedZones(bundle, base), unavailable: ranked.unavailable || base.manual_only === true, rerouted: ranked.fromRoute,
     };
   }, [bundle, trigger, crowd, zone]);
 
@@ -341,6 +346,13 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
           </View>
           <Txt k="title">{isPlanB ? t.wayHomeChanged : t.wayHomeTonight}</Txt>
           <Txt c="sub">{isPlanB ? changeLine : t.allNormalSub}</Txt>
+          {plan.live && plan.approved_by && !plan.manual_only ? (
+            <Txt k="small" c="sub">
+              {plan.generated_by && plan.generated_by !== "rules_fallback" && plan.source.startsWith("Live AI")
+                ? `New plan for this situation, written by AI and approved by ${plan.approved_by}.`
+                : `Your saved plan still works here. Checked and approved by ${plan.approved_by}.`}
+            </Txt>
+          ) : null}
         </View>
 
         {opened && (

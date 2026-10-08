@@ -7,6 +7,7 @@ import { parseScenario, pickCachedScenario, partToCode, describePart } from "./s
 import { readPlanFile } from "./generate";
 import { groupStuck, readFixes } from "./premortem";
 import type { Plan } from "./plan";
+import { classify } from "./replan";
 
 type Alloc = ReturnType<typeof allocate>;
 
@@ -106,6 +107,12 @@ export function buildPreview(code: string) {
     coverage: { exact, fallback, missing, profiles: profiles.length },
     simulated_sms,
     needs_human,
+    // Attendees with personal plans: covered by a pre-made plan, or needing a live AI replan.
+    replan: (() => {
+      const items = classify(code);
+      const n = (s: string) => items.filter((i) => i.status === s).length;
+      return { premade: n("premade"), still_valid: n("still_valid"), affected: n("affected"), manual: n("manual"), people: items.length };
+    })(),
   };
 }
 export type Preview = ReturnType<typeof buildPreview>;

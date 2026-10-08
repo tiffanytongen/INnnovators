@@ -7,9 +7,24 @@ export type ScenarioPart =
   | { type: "TRAIN_DELAY"; line_code: string; mins: number }
   | { type: "SHUTTLE_FULL" }
   | { type: "HEAT" }
-  | { type: "SET_DELAY"; stage: string; mins: number }; // stage "RIVER" | "LAWN" | "TENT"
+  | { type: "SET_DELAY"; stage: string; mins: number } // stage "RIVER" | "LAWN" | "TENT"
+  // Not in the pre-made contingency plans: only handled by live AI replanning.
+  | { type: "PATH_CLOSED"; route: string } // a walking route id, e.g. "route_B_canopy"
+  | { type: "PLACE_CLOSED"; place: string }; // a pickup zone / shuttle stop / taxi rank id
 
-const ORDER = ["STORM", "GATE_CLOSED", "TRAIN_DELAY", "SHUTTLE_FULL", "HEAT", "SET_DELAY"];
+const ORDER = ["STORM", "GATE_CLOSED", "TRAIN_DELAY", "SHUTTLE_FULL", "HEAT", "SET_DELAY", "PATH_CLOSED", "PLACE_CLOSED"];
+
+// Labels for the closable paths and places (kept here so phones can describe them offline).
+const ROUTE_LABELS: Record<string, string> = {
+  route_A_open: "Riverside path to Gate A", route_B_lawn: "Lawn path to Gate B", route_B_canopy: "Canopy walk to Gate B",
+  covered_path_2: "Covered path to Gate C", route_C_open: "Open path to Gate C", ramp_path_D: "Ramp path to Gate D",
+};
+const PLACE_LABELS: Record<string, string> = {
+  pickup_zone_1: "Pickup Zone 1", pickup_zone_2: "Pickup Zone 2", pickup_zone_3: "Pickup Zone 3",
+  shuttle_stop_batman_ave: "Batman Ave shuttle stop", accessible_taxi_rank: "Accessible taxi rank", coach_bays: "Coach bays",
+};
+export const CLOSABLE_ROUTES = Object.keys(ROUTE_LABELS);
+export const CLOSABLE_PLACES = Object.keys(PLACE_LABELS);
 
 export function partToCode(p: ScenarioPart): string {
   switch (p.type) {
@@ -19,6 +34,8 @@ export function partToCode(p: ScenarioPart): string {
     case "SHUTTLE_FULL": return "SHUTTLE_FULL";
     case "HEAT": return "HEAT";
     case "SET_DELAY": return `SET_${p.stage}_${p.mins}`;
+    case "PATH_CLOSED": return `PATH_${p.route}`;
+    case "PLACE_CLOSED": return `PLACE_${p.place}`;
   }
 }
 
@@ -30,6 +47,8 @@ export function codeToPart(code: string): ScenarioPart | null {
   if ((m = code.match(/^GATE_([A-D])$/))) return { type: "GATE_CLOSED", gate: m[1] };
   if ((m = code.match(/^TRAIN_([A-Z]+)_(\d{1,3})$/))) return { type: "TRAIN_DELAY", line_code: m[1], mins: Number(m[2]) };
   if ((m = code.match(/^SET_(RIVER|LAWN|TENT)_(\d{1,3})$/))) return { type: "SET_DELAY", stage: m[1], mins: Number(m[2]) };
+  if ((m = code.match(/^PATH_([a-z][A-Za-z0-9_]*)$/)) && ROUTE_LABELS[m[1]]) return { type: "PATH_CLOSED", route: m[1] };
+  if ((m = code.match(/^PLACE_([a-z][A-Za-z0-9_]*)$/)) && PLACE_LABELS[m[1]]) return { type: "PLACE_CLOSED", place: m[1] };
   return null;
 }
 
@@ -86,5 +105,7 @@ export function describePart(p: ScenarioPart): string {
     case "SHUTTLE_FULL": return "22:45 accessible shuttle full";
     case "HEAT": return "Extreme heat";
     case "SET_DELAY": return `${cap(p.stage)} Stage running ${p.mins} min late`;
+    case "PATH_CLOSED": return `${ROUTE_LABELS[p.route] ?? p.route} closed`;
+    case "PLACE_CLOSED": return `${PLACE_LABELS[p.place] ?? p.place} closed`;
   }
 }

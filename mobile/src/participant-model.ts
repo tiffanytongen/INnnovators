@@ -10,6 +10,7 @@ export type Step = {
 export type Plan = Step & {
   source: string; alternatives: Step[]; escalate_text_localised: string; needs_human: boolean; needs_human_reason?: string | null;
   weather?: { status: string; source: string }; journey?: { main_tradeoff: string }; approved_by?: string;
+  live?: boolean; manual_only?: boolean; generated_by?: string;
 };
 export type LineupSet = { id: string; artist: string; stage_id: string; stage: string; start: string; end: string };
 export type Bundle = {
@@ -95,6 +96,10 @@ export function normalizeBundle(value: unknown, personId: string): Bundle | null
       ...step, source: text(raw.source) ? raw.source : "Fieldday Ops",
       alternatives: Array.isArray(raw.alternatives) ? raw.alternatives.flatMap(v => { const s = readStep(v); return s ? [s] : []; }) : [],
       needs_human: raw.needs_human === true,
+      ...(text(raw.needs_human_reason) ? { needs_human_reason: raw.needs_human_reason } : {}),
+      ...(text(raw.approved_by) ? { approved_by: raw.approved_by } : {}),
+      ...(text(raw.generated_by) ? { generated_by: raw.generated_by } : {}),
+      live: raw.live === true, manual_only: raw.manual_only === true,
       escalate_text_localised: text(raw.escalate_text_localised) ? raw.escalate_text_localised : "Go to the nearest info tent or show this screen to any volunteer."
     };
   }

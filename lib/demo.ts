@@ -8,6 +8,7 @@ import { loadProfiles, nameOf, placeById, timetable, toMin, toTime, type Profile
 import { readBroadcast } from "./state";
 import { planFor } from "./preview";
 import { resetCrowd, setCrowdLevel } from "./crowd";
+import { clearLivePlans } from "./replan";
 
 const STATE_PATH = path.join(process.cwd(), "data", "state", "demo.json");
 export const DELIVERY_DELAY_MS = 2000; // the "it arrives a moment later" beat for the recording
@@ -172,4 +173,5 @@ export function recent() {
 export function resetDemo() {
   write(empty());
   resetCrowd(); // the congestion scenario marks a path heavy
+  clearLivePlans(); // so the live-replan demo can run again
 }
