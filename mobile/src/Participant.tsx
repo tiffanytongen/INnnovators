@@ -12,7 +12,7 @@ import { crowdAwarePlan, normalizeBundle, resolveZone, supportedZones, type Bund
 import { normalizeCrowd, type CrowdState } from "../../lib/crowd-model";
 import Signup from "./Signup";
 import { EditContact } from "./ContactForm";
-import { Banner, NoteCard, useDemoInbox, type DemoNote } from "./Notify";
+import { Banner, useDemoInbox, type DemoNote } from "./Notify";
 import { ATTENDEE, PLANB, C, F, addMin, getJSON, hhmm, s, store } from "./theme";
 import { Btn, Card, Check, Chips, Dot, Field, InnerPill, Notice, PalContext, Tile, Txt, onTile, usePal } from "./ui";
 
@@ -125,7 +125,7 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
   const [error, setError] = useState("");
   const lastRaw = useRef<string | null>(null);
   // Demo notifications (simulated) for this attendee only, plus any schedule changes.
-  const { notes, setDelays, incoming, clearIncoming } = useDemoInbox(server, personId, "attendee");
+  const { setDelays, incoming, clearIncoming } = useDemoInbox(server, personId, "attendee");
   const [opened, setOpened] = useState<DemoNote | null>(null);
   const [editing, setEditing] = useState(false);
 
@@ -236,7 +236,6 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
         reroutedFrom={current.rerouted}
         onZone={(z) => { setZone(z); store.set(`planb:zone:${personId}`, z); }}
         onSwitch={onSwitch}
-        notes={notes}
         setDelays={setDelays}
         opened={opened}
         onOpen={setOpened}
@@ -249,10 +248,10 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
 }
 
 // ---------- the one attendee screen ----------
-function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, crowd, zone, zones, unavailable, reroutedFrom, onZone, onSwitch, notes, setDelays, opened, onOpen, onEditContact }: {
+function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, crowd, zone, zones, unavailable, reroutedFrom, onZone, onSwitch, setDelays, opened, onOpen, onEditContact }: {
   bundle: Bundle; plan: Plan; scenarioKey: string; isPlanB: boolean; exact: boolean; trigger: Trigger | null; online: boolean;
   crowd: CrowdState; zone: string; zones: string[]; unavailable: boolean; reroutedFrom: string | null; onZone: (z: string) => void; onSwitch: () => void;
-  notes: DemoNote[]; setDelays: Record<string, number>; opened: DemoNote | null; onOpen: (n: DemoNote | null) => void; onEditContact: () => void;
+  setDelays: Record<string, number>; opened: DemoNote | null; onOpen: (n: DemoNote | null) => void; onEditContact: () => void;
 }) {
   const p = usePal();
   const t = strings(bundle.profile.lang);
@@ -265,7 +264,6 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const sheetY = useRef(0);
   const journeyY = useRef(0);
   const openedY = useRef(0);
-  const [showInbox, setShowInbox] = useState(false);
   // Opening a notification: congestion → back to the map (new route); schedule/artist → the panel explaining it.
   useEffect(() => {
     if (!opened) return;
@@ -339,30 +337,12 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
             <View style={{ alignSelf: "flex-start", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: isPlanB ? C.pink : p.raised }}>
               <Txt k="eyebrow" style={{ color: isPlanB ? C.white : p.ink }}>{isPlanB ? `Plan B${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}` : t.festivalDay}</Txt>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              {!online && <Txt k="small" c="sub">Offline</Txt>}
-              <Pressable accessibilityRole="button" accessibilityLabel={`Alerts, ${notes.length}`} onPress={() => setShowInbox(!showInbox)} style={({ pressed }) => [{ minHeight: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: showInbox ? p.accent : p.raised, flexDirection: "row", alignItems: "center", gap: 6 }, pressed && s.pressed]}>
-                <Txt k="smallStrong" style={{ color: showInbox ? C.white : p.ink }}>Alerts</Txt>
-                {notes.length > 0 && (
-                  <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: showInbox ? C.white : C.pink, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontFamily: F.bodyBold, fontSize: 12, color: showInbox ? p.accent : C.white }}>{notes.length}</Text>
-                  </View>
-                )}
-              </Pressable>
-            </View>
+            {!online && <Txt k="small" c="sub">Offline · saved on this phone</Txt>}
           </View>
           <Txt k="title">{isPlanB ? t.wayHomeChanged : t.wayHomeTonight}</Txt>
           <Txt c="sub">{isPlanB ? changeLine : t.allNormalSub}</Txt>
         </View>
 
-        {/* Notification centre: every alert this phone has received (demo notifications are simulated) */}
-        {showInbox && (
-          <View style={{ gap: 8 }}>
-            {notes.length === 0 ? <Txt k="small" c="sub">No alerts yet.</Txt> : [...notes].reverse().map((n) => (
-              <NoteCard key={n.id} note={n} compact onPress={() => { onOpen(n); setShowInbox(false); }} />
-            ))}
-          </View>
-        )}
         {opened && (
           <View onLayout={(e) => { openedY.current = e.nativeEvent.layout.y; }}>
             <OpenedNote note={opened} bundle={bundle} setDelays={setDelays} routeName={name(st.route_id).replace(/ \(.*/, "")} gate={gate} rerouted={!!reroutedFrom} onClose={() => onOpen(null)} />
