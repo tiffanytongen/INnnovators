@@ -5,7 +5,7 @@
 //   green  — Plan A / solved     pink   — Plan B / needs you
 //   yellow — waves / gates        purple — the main action and selected pills
 // Type: Figtree throughout (ExtraBold for headings and big numbers).
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
@@ -82,6 +82,8 @@ export const s = StyleSheet.create({
 
 // The laptop running `npm start`: same IP Expo Go loaded this app from, port 3000.
 export function defaultServer() {
+  // Web build: the app is served by the Plan B server itself, so talk to the same origin.
+  if (Platform.OS === "web" && typeof window !== "undefined") return window.location.origin;
   const host = Constants.expoConfig?.hostUri?.split(":")[0];
   return host ? `http://${host}:${Constants.expoConfig?.extra?.serverPort ?? 3000}` : "http://localhost:3000";
 }

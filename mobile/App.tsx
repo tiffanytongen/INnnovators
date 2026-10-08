@@ -1,7 +1,7 @@
 // Plan B (Expo Go). One demo app, two roles: Participant (attendee view, as it would appear inside the
 // event's own app) and Organizer (Fieldday staff). The switch at the top is for the demo only.
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -26,7 +26,7 @@ export default function App() {
     (async () => {
       const [m, sv] = await Promise.all([store.get<Mode>("planb:mode"), store.get<string>("planb:server")]);
       if (m === "participant" || m === "organizer") setMode(m);
-      if (sv) setServer(sv);
+      if (sv && Platform.OS !== "web") setServer(sv); // the web build always uses the server it was loaded from
       setReady(true);
     })();
   }, []);
