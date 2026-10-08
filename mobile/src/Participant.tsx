@@ -8,9 +8,11 @@ import { describePart, parseScenario, pickCachedScenario, type ScenarioPart } fr
 import { verifyTrigger, type Trigger } from "../../lib/trigger";
 import { strings } from "../../lib/i18n";
 import SiteMap from "./SiteMap";
-import { crowdAwarePlan, normalizeBundle, resolveZone, supportedZones, type Bundle, type Plan, type Step } from "./participant-model";
+import { crowdAwarePlan, normalizeBundle, resolveZone, supportedZones, type Bundle, type LineupSet, type Plan, type Step } from "./participant-model";
 import { normalizeCrowd, type CrowdState } from "../../lib/crowd-model";
 import Signup from "./Signup";
+import { EditContact } from "./ContactForm";
+import { Banner, useDemoInbox, type DemoNote } from "./Notify";
 import { ATTENDEE, PLANB, C, F, addMin, getJSON, hhmm, s, store } from "./theme";
 import { Btn, Card, Check, Chips, Dot, Field, InnerPill, Notice, PalContext, Tile, Txt, onTile, usePal } from "./ui";
 
@@ -24,6 +26,8 @@ function shortPart(x: ScenarioPart): string {
     case "SHUTTLE_FULL": return "Shuttle full";
     case "HEAT": return "Extreme heat";
     case "SET_DELAY": return describePart(x).replace("running ", "");
+    case "PATH_CLOSED":
+    case "PLACE_CLOSED": return describePart(x);
   }
 }
 
@@ -122,6 +126,10 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
   const [online, setOnline] = useState(true);
   const [error, setError] = useState("");
   const lastRaw = useRef<string | null>(null);
+  // Demo notifications (simulated) for this attendee only, plus any schedule changes.
+  const { setDelays, incoming, clearIncoming } = useDemoInbox(server, personId, "attendee");
+  const [opened, setOpened] = useState<DemoNote | null>(null);
+  const [editing, setEditing] = useState(false);
 
   // Saved copy first (instant, offline), then refresh. A broken server response never overwrites a working saved plan.
   const refreshBundle = useCallback(async () => {
@@ -175,6 +183,9 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
         store.set("planb:trigger", t);
         setTrigger(t);
         if (t.code !== "NORMAL") Vibration.vibrate([0, 250, 120, 250]);
+        // A new situation may come with plans written for it after this phone last synced: fetch them now
+        // (saved on the phone, so they keep working offline).
+        if (!bundle.plans[t.code]) refreshBundle();
       } catch {
         setOnline(false);
       }
@@ -182,7 +193,7 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
     poll();
     const id = setInterval(poll, 2000);
     return () => clearInterval(id);
-  }, [bundle, server]);
+  }, [bundle, server, refreshBundle]);
 
   const current = useMemo(() => {
     if (!bundle) return null;
@@ -195,7 +206,7 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
     const ranked = crowdAwarePlan(base, crowd, bundle.walking, here, bundle.closed?.[key]);
     return {
       plan: ranked.plan, key, exact: exact || code === "NORMAL", isPlanB: code !== "NORMAL",
-      zone: here, zones: supportedZones(bundle, base), unavailable: ranked.unavailable, rerouted: ranked.fromRoute,
+      zone: here, zones: supportedZones(bundle, base), unavailable: ranked.unavailable || base.manual_only === true, rerouted: ranked.fromRoute,
     };
   }, [bundle, trigger, crowd, zone]);
 
@@ -209,7 +220,9 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
       </View>
     );
 
+  if (editing) return <EditContact server={server} personId={personId} onClose={() => setEditing(false)} />;
   return (
+    <View style={{ flex: 1 }}>
     <PalContext.Provider value={current.isPlanB ? PLANB : ATTENDEE}>
       <AttendeeScreen
         // A new update, a new starting point or a re-ranked route starts again from option 1.
@@ -228,15 +241,22 @@ function PersonApp({ server, personId, onSwitch, onPlanB }: { server: string; pe
         reroutedFrom={current.rerouted}
         onZone={(z) => { setZone(z); store.set(`planb:zone:${personId}`, z); }}
         onSwitch={onSwitch}
+        setDelays={setDelays}
+        opened={opened}
+        onOpen={setOpened}
+        onEditContact={() => setEditing(true)}
       />
     </PalContext.Provider>
+    {incoming && <Banner key={incoming.id} note={incoming} onOpen={() => setOpened(incoming)} onDone={clearIncoming} />}
+    </View>
   );
 }
 
 // ---------- the one attendee screen ----------
-function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, crowd, zone, zones, unavailable, reroutedFrom, onZone, onSwitch }: {
+function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, online, crowd, zone, zones, unavailable, reroutedFrom, onZone, onSwitch, setDelays, opened, onOpen, onEditContact }: {
   bundle: Bundle; plan: Plan; scenarioKey: string; isPlanB: boolean; exact: boolean; trigger: Trigger | null; online: boolean;
   crowd: CrowdState; zone: string; zones: string[]; unavailable: boolean; reroutedFrom: string | null; onZone: (z: string) => void; onSwitch: () => void;
+  setDelays: Record<string, number>; opened: DemoNote | null; onOpen: (n: DemoNote | null) => void; onEditContact: () => void;
 }) {
   const p = usePal();
   const t = strings(bundle.profile.lang);
@@ -248,6 +268,13 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const scroller = useRef<ScrollView>(null);
   const sheetY = useRef(0);
   const journeyY = useRef(0);
+  const openedY = useRef(0);
+  // Opening a notification: congestion → back to the map (new route); schedule/artist → the panel explaining it.
+  useEffect(() => {
+    if (!opened) return;
+    const id = setTimeout(() => scroller.current?.scrollTo({ y: opened.action.kind === "route" ? 0 : Math.max(0, sheetY.current + openedY.current - 16), animated: true }), 120);
+    return () => clearTimeout(id);
+  }, [opened]);
   const showJourney = () => scroller.current?.scrollTo({ y: Math.max(0, sheetY.current + journeyY.current - 16), animated: true });
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 20000);
@@ -319,7 +346,20 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
           </View>
           <Txt k="title">{isPlanB ? t.wayHomeChanged : t.wayHomeTonight}</Txt>
           <Txt c="sub">{isPlanB ? changeLine : t.allNormalSub}</Txt>
+          {plan.live && plan.approved_by && !plan.manual_only ? (
+            <Txt k="small" c="sub">
+              {plan.generated_by && plan.generated_by !== "rules_fallback" && plan.source.startsWith("Live AI")
+                ? `New plan for this situation, written by AI and approved by ${plan.approved_by}.`
+                : `Your saved plan still works here. Checked and approved by ${plan.approved_by}.`}
+            </Txt>
+          ) : null}
         </View>
+
+        {opened && (
+          <View onLayout={(e) => { openedY.current = e.nativeEvent.layout.y; }}>
+            <OpenedNote note={opened} bundle={bundle} setDelays={setDelays} routeName={name(st.route_id).replace(/ \(.*/, "")} gate={gate} rerouted={!!reroutedFrom} onClose={() => onOpen(null)} />
+          </View>
+        )}
 
         {plan.needs_human && <Notice>{t.needsHuman}</Notice>}
         {!exact && <Notice tone="ink">{t.closestPlan}</Notice>}
@@ -401,6 +441,8 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
               </View>
             ) : null}
 
+            {(bundle.lineup?.length ?? 0) > 0 && <Lineup sets={bundle.lineup!} setDelays={setDelays} focus={opened?.action.kind === "lineup" ? opened.action.set_id : null} />}
+
             {/* 4. Why, and other options: white pills, below the action */}
             <View style={{ gap: 10 }}>
               <Pill label={t.whyPlan} sign={showWhy ? "−" : "+"} onPress={() => setShowWhy(!showWhy)} />
@@ -425,6 +467,7 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
           </>
         )}
 
+        <Pill label="Emergency & pickup contact" sign="›" onPress={onEditContact} />
         <Btn kind="ghost" title="Switch attendee (demo)" onPress={onSwitch} />
       </View>
     </ScrollView>
@@ -439,5 +482,63 @@ function Pill({ label, sign, onPress }: { label: string; sign: string; onPress: 
       <Txt k="bodyStrong">{label}</Txt>
       <Txt k="headline" c="sub">{sign}</Txt>
     </Pressable>
+  );
+}
+
+// Must-see sets tonight, with any schedule change (demo input) shown as old → new time.
+function Lineup({ sets, setDelays, focus }: { sets: LineupSet[]; setDelays: Record<string, number>; focus: string | null }) {
+  const p = usePal();
+  return (
+    <View style={{ backgroundColor: p.raised, borderRadius: 24, padding: 18, gap: 10 }}>
+      <Txt k="bodyStrong">Your must-see tonight</Txt>
+      {sets.map((x) => {
+        const d = setDelays[x.id] ?? 0;
+        return (
+          <View key={x.id} style={[s.between, focus === x.id && { backgroundColor: p.card, borderRadius: 16, marginHorizontal: -8, paddingHorizontal: 8, paddingVertical: 6 }]}>
+            <View style={{ flex: 1 }}>
+              <Txt k="smallStrong">{x.artist}</Txt>
+              <Txt k="small" c="sub">{x.stage}</Txt>
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              {d ? <Txt k="small" c="sub" style={{ textDecorationLine: "line-through" }}>{x.start}</Txt> : null}
+              <Txt k="bodyStrong">{d ? addMin(x.start, d) : x.start}–{d ? addMin(x.end, d) : x.end}</Txt>
+              {d ? <View style={{ backgroundColor: C.pink, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ fontFamily: F.bodyBold, fontSize: 12, color: C.white }}>+{d} min</Text></View> : null}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+// What a tapped notification opens: the relevant updated information, on the same screen.
+function OpenedNote({ note, bundle, setDelays, routeName, gate, rerouted, onClose }: {
+  note: DemoNote; bundle: Bundle; setDelays: Record<string, number>; routeName: string; gate: string; rerouted: boolean; onClose: () => void;
+}) {
+  const p = usePal();
+  const set = note.action.kind === "lineup" ? bundle.lineup?.find((x) => x.id === (note.action as { set_id: string }).set_id) : undefined;
+  const d = set ? setDelays[set.id] ?? 0 : 0;
+  const color = note.scenario === "congestion" ? C.pink : note.scenario === "delay" ? C.yellow : C.purple;
+  const fg = onTile(color);
+  return (
+    <View style={{ backgroundColor: color, borderRadius: 28, padding: 18, gap: 8 }}>
+      <View style={s.between}>
+        <Txt k="smallStrong" style={{ color: fg }}>{note.title}</Txt>
+        <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} hitSlop={12}><Txt k="bodyStrong" style={{ color: fg }}>✕</Txt></Pressable>
+      </View>
+      <Txt style={{ color: fg }}>{note.body}</Txt>
+      {note.scenario === "congestion" && (
+        <InnerPill>{rerouted ? `New route: ${routeName} → Gate ${gate}` : `Still ${routeName}: allow extra time`}</InnerPill>
+      )}
+      {set && (
+        <InnerPill>{set.artist} · {set.stage} · {d ? `${set.start} → ${addMin(set.start, d)}` : set.start}</InnerPill>
+      )}
+      {note.scenario === "priority" && set && bundle.map && (
+        <View style={{ borderRadius: 20, overflow: "hidden", backgroundColor: p.card, marginTop: 4 }}>
+          <SiteMap map={bundle.map} highlight={{ route_id: "", gate_id: "", meetup_id: set.stage_id }} meetLabel="Go here" accent={p.accent} />
+        </View>
+      )}
+      <Txt k="small" style={{ color: fg }}>Simulated demo alert.</Txt>
+    </View>
   );
 }

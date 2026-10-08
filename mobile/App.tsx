@@ -1,7 +1,7 @@
 // Plan B (Expo Go). One demo app, two roles: Participant (attendee view, as it would appear inside the
 // event's own app) and Organizer (Fieldday staff). The switch at the top is for the demo only.
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
@@ -25,8 +25,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       const [m, sv] = await Promise.all([store.get<Mode>("planb:mode"), store.get<string>("planb:server")]);
-      if (m) setMode(m);
-      if (sv) setServer(sv);
+      if (m === "participant" || m === "organizer") setMode(m);
+      if (sv && Platform.OS !== "web") setServer(sv); // the web build always uses the server it was loaded from
       setReady(true);
     })();
   }, []);
@@ -51,11 +51,11 @@ export default function App() {
         <SafeAreaView style={{ flex: 1, backgroundColor: pal.band }} edges={["top"]}>
           {/* Demo role switch only (no wordmark). Left-aligned so Expo Go's floating dev button doesn't cover it. */}
           <View style={{ flexDirection: "row", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8, backgroundColor: pal.band }}>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 6 }}>
               {(["participant", "organizer"] as Mode[]).map((m) => {
                 const on = mode === m;
                 return (
-                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 38, paddingHorizontal: 18, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.accent : pal.card }}>
+                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.accent : pal.card }}>
                     <Text style={{ fontFamily: F.bodySemi, fontSize: 14, color: on ? pal.onAccent : pal.ink }}>{m === "participant" ? "Attendee" : "Organizer"}</Text>
                   </Pressable>
                 );

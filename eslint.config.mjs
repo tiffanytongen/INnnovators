@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
     "mobile/node_modules/**",
     "mobile/.expo/**",
     "mobile/dist/**",
+    "public/app/**", // generated web build of the phone app
   ]),
 ]);
 

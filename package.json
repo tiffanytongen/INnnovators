@@ -10,7 +10,8 @@
     "gen:data": "tsx scripts/generate-data.ts",
     "gen:plans": "tsx scripts/generate-plans.ts",
     "mobile": "cd mobile && npx expo start",
-    "weather:check": "tsx scripts/weather-check.ts"
+    "weather:check": "tsx scripts/weather-check.ts",
+    "build:web": "cd mobile && rm -rf ../public/app && npx expo export --platform web --output-dir ../public/app"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -31,5 +32,8 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9"
   }
 }

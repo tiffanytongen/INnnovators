@@ -27,12 +27,14 @@ export type World = {
   fullServices: Set<string>;
   setDelays: Record<string, number>; // stage_id -> mins
   extraServices: Service[]; // pre-mortem fixes
+  closedRoutes: Set<string>; // walking paths closed by an incident (live replanning)
+  closedPlaceIds: Set<string>; // pickup zones / stops closed by an incident (live replanning)
 };
 
 const STAGE_IDS: Record<string, string> = { RIVER: "river_stage", LAWN: "lawn_stage", TENT: "tent_stage" };
 
 export function worldFor(parts: ScenarioPart[], extraServices: Service[] = []): World {
-  const w: World = { storm: false, heat: false, closedGates: new Set(), delays: {}, fullServices: new Set(), setDelays: {}, extraServices };
+  const w: World = { storm: false, heat: false, closedGates: new Set(), delays: {}, fullServices: new Set(), setDelays: {}, extraServices, closedRoutes: new Set(), closedPlaceIds: new Set() };
   for (const p of parts) {
     if (p.type === "STORM") w.storm = true;
     if (p.type === "HEAT") w.heat = true;
@@ -40,6 +42,8 @@ export function worldFor(parts: ScenarioPart[], extraServices: Service[] = []): 
     if (p.type === "TRAIN_DELAY") w.delays[p.line_code] = p.mins;
     if (p.type === "SHUTTLE_FULL") w.fullServices.add("shuttle_acc_2245");
     if (p.type === "SET_DELAY") w.setDelays[STAGE_IDS[p.stage]] = p.mins;
+    if (p.type === "PATH_CLOSED") w.closedRoutes.add(p.route);
+    if (p.type === "PLACE_CLOSED") w.closedPlaceIds.add(p.place);
   }
   return w;
 }
@@ -48,6 +52,7 @@ export function worldFor(parts: ScenarioPart[], extraServices: Service[] = []): 
 export function closedPlaces(w: World): string[] {
   const closed: string[] = [];
   for (const pl of site.places) {
+    if (w.closedPlaceIds.has(pl.id)) { closed.push(pl.id); continue; }
     if (!pl.via_gates) continue;
     if (pl.via_gates.every((g) => w.closedGates.has(g))) closed.push(pl.id);
     else if (w.storm && pl.type === "pickup_zone" && !pl.covered) closed.push(pl.id);
@@ -83,7 +88,7 @@ export function feasibleOptions(p: Profile, scenario: string | ScenarioPart[], e
     if (!route.from.some((f) => from.includes(f))) continue;
 
     const crowdLevel = crowd[route.id]?.level ?? "low";
-    if (crowdLevel === "closed") continue;
+    if (crowdLevel === "closed" || w.closedRoutes.has(route.id)) continue;
 
     const crowdCost = crowdPenalty(crowdLevel);
 

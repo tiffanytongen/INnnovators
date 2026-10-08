@@ -1,9 +1,13 @@
 // Ticket checkout (3 optional journey questions) → profile. Plan A is generated now; the disruption plans continue in the background.
 import { loadProfiles, saveProfiles, scenarios, type Profile } from "@/lib/data";
 import { generatePlan, writePlan } from "@/lib/generate";
+import { parseContact } from "@/lib/contact";
 
 export async function POST(req: Request) {
   const body = await req.json();
+  const parsed = parseContact(body.contact);
+  if ("error" in parsed) return Response.json(parsed, { status: 400 });
+  const contact = parsed.contact;
   const profiles = loadProfiles();
   const base = String(body.name || "guest").toLowerCase().replace(/[^a-z]/g, "") || "guest";
   let id = `${base}_${Math.floor(Math.random() * 900 + 100)}`;
@@ -18,9 +22,9 @@ export async function POST(req: Request) {
     home:
       body.mode === "shuttle" ? { mode: "shuttle", booking: step_free ? "shuttle_acc_2245" : "shuttle_gen_2250" }
       : body.mode === "pickup" ? {
-          mode: "pickup", zone: body.zone || "pickup_zone_2", contact: body.contact || "parent", notify: body.notify !== false,
-          // Only the last 3 digits are kept: enough to show who gets the (simulated) text.
-          ...(body.notify !== false && /\d{3}/.test(String(body.contact_phone ?? "")) ? { contact_phone: String(body.contact_phone).replace(/\D/g, "").slice(-3) } : {}),
+          mode: "pickup", zone: body.zone || "pickup_zone_2",
+          // Who's collecting them, in words the plan can use ("your parent"); texts only if the attendee agreed.
+          contact: contact ? contact.relationship.toLowerCase() : "pickup contact", notify: !!contact?.attendee_agreed,
         }
       : { mode: "train", line: body.line || "Sandringham" },
     access: { wheelchair: !!body.wheelchair, step_free, low_vision: !!body.low_vision, sensory: !!body.sensory },
@@ -31,6 +35,8 @@ export async function POST(req: Request) {
     location_at_end: step_free ? "accessible_platform" : "river_stage",
     must_see: [],
     weight: 1,
+    ...(contact ? { contact } : {}),
+    checkout: true,
     ...(body.suburb ? { home_suburb: String(body.suburb).slice(0, 60) } : {}),
     ...(/^\d{2}:\d{2}$/.test(body.leave_by ?? "") ? { preferences: { latest_arrival: body.leave_by } } : {}),
   };

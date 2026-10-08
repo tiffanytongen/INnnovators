@@ -80,6 +80,34 @@
         "That stage's remaining sets finish {mins} minutes later; leaving times shift accordingly"
       ],
       "emp_section": "EMP s3.2 Program changes (MOCK)"
+    },
+    {
+      "type": "PATH_CLOSED",
+      "code_pattern": "PATH_{route_id}",
+      "example": "PATH_route_B_canopy",
+      "label": "Walking path closed",
+      "params": {
+        "route": "a walking route id"
+      },
+      "effects": [
+        "The named walking path cannot be used",
+        "Not covered by pre-made contingency plans: affected attendees are replanned live, then staff approve"
+      ],
+      "emp_section": "EMP s5.3 Path closure (MOCK)"
+    },
+    {
+      "type": "PLACE_CLOSED",
+      "code_pattern": "PLACE_{place_id}",
+      "example": "PLACE_pickup_zone_1",
+      "label": "Pickup zone / stop closed",
+      "params": {
+        "place": "a pickup zone, shuttle stop or taxi rank id"
+      },
+      "effects": [
+        "The named pickup zone, shuttle stop or taxi rank cannot be used",
+        "Not covered by pre-made contingency plans: affected attendees are replanned live, then staff approve"
+      ],
+      "emp_section": "EMP s6.4 Transport point closure (MOCK)"
     }
   ],
   "demo_scenario": "STORM+GATE_A+TRAIN_SAND_25+SHUTTLE_FULL",

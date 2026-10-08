@@ -6,6 +6,7 @@ import { publicKey } from "@/lib/trigger";
 import { mapPayload } from "@/lib/map";
 import { worldFor, closedPlaces, leaveTime } from "@/lib/options";
 import { parseScenario } from "@/lib/scenario";
+import { lineupFor } from "@/lib/demo";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   await connection(); // always read live state at request time, never prerender
@@ -68,6 +69,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     walking,
     plan_updated_at: file?.updated_at ?? null,
     closed,
+    lineup: lineupFor(profile), // must-see sets tonight (timetabled; demo schedule changes arrive via /api/demo)
     service_kinds: Object.fromEntries([...transport.shuttles, ...transport.taxis].map((x) => [x.id, x.kind])),
     fetched_at: new Date().toISOString(),
   });

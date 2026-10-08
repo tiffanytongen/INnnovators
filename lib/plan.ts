@@ -65,6 +65,8 @@ export type Plan = PlanStep & {
   approved_at?: string;
   approved_by?: string;
   approval_id?: string;
+  live?: boolean; // written by a live replan (AI plan, or a pre-made plan re-approved for a new situation)
+  manual_only?: boolean; // no valid plan under the restrictions: the phone sends them to staff
 };
 
 export function sourceFor(scenario: string): string {

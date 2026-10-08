@@ -1,0 +1,29 @@
+# Render Blueprint: one always-on Node web service running the Plan B server, which also serves the
+# phone app's web build (public/app). Secrets are entered in the Render dashboard (sync: false).
+services:
+  - type: web
+    name: plan-b
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/trigger
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TRIGGER_SECRET
+        sync: false
+      - key: METEOSOURCE_API_KEY
+        sync: false
+      - key: METEOSOURCE_TIER
+        sync: false
+      - key: FESTIVAL_LATITUDE
+        sync: false
+      - key: FESTIVAL_LONGITUDE
+        sync: false
+      - key: FESTIVAL_TIMEZONE
+        sync: false
+      - key: FESTIVAL_DATE
+        sync: false

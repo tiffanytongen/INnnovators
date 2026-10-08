@@ -26,6 +26,7 @@ How to decide:
 - volunteer_escort: true when a volunteer should meet them (wheelchair users in a disruption, a minor whose pickup changed, etc.).
 - needs_human: true ONLY for a medical condition, a lost/missing child, or a safety threat. Those are never AI-resolved; still give the safest candidate, but flag it. A minor whose pickup point moved is NOT needs_human — use volunteer_escort instead.
 - If a candidate says PICKUP_ZONE_CHANGES, the person's contact is messaged automatically by Fieldday — tell them that ("your parent has been sent the new pickup point"); don't ask them to do it. If it also says CONTACT_NOT_OPTED_IN, nobody is texted: ask them to tell their contact the new pickup point.
+- If they have a saved contact, refer to them by name or by the relationship exactly as saved (e.g. "Sarah", "your parent"); never guess gender (no "mum"/"dad" unless saved that way).
 - alternatives: 1-3 OTHER candidates, best first, each with its own reason. These are shown offline when the person taps "Doesn't work for me".
 
 Writing:
@@ -39,7 +40,7 @@ ${JSON.stringify({ gates: site.gates, routes: site.routes, places: site.places, 
 TRANSPORT (timetabled, before any delay):
 ${JSON.stringify(transport)}`;
 
-export function userPrompt(profile: Profile, scenario: string) {
+export function userPrompt(profile: Profile, scenario: string, incident?: string) {
   const parts = parseScenario(scenario)!;
   const w = worldFor(parts);
   // Crowd allocation across ALL attendees decides which gate/wave this person gets (no gate over capacity).
@@ -64,7 +65,10 @@ export function userPrompt(profile: Profile, scenario: string) {
 ${JSON.stringify({ ...profile, weight: undefined, language_name: LANG_NAMES[profile.lang] ?? profile.lang }, null, 1)}
 
 SCENARIO: ${scenario}
-${effects.length ? effects.map((e) => `- ${e}`).join("\n") : "- Normal night. River Stage headliner ends 22:30 and ~15,000 people leave at once."}
+${incident ? `LIVE INCIDENT REPORT from staff, just now (no pre-made plan covers this situation, so this is a NEW plan for it):
+"${incident.slice(0, 500)}"
+Use only the CANDIDATE OPTIONS below: they are already recalculated for these restrictions. Explain the change in terms of what actually happened.
+` : ""}${effects.length ? effects.map((e) => `- ${e}`).join("\n") : "- Normal night. River Stage headliner ends 22:30 and ~15,000 people leave at once."}
 Closed places: ${closedPlaces(w).map(nameOf).join(", ") || "none"}
 Normal exit time from ${nameOf(profile.location_at_end)}: ${toTime(leaveTime(profile, w))}.
 
@@ -77,8 +81,8 @@ Write the plan for ${profile.name} in ${LANG_NAMES[profile.lang] ?? profile.lang
   };
 }
 
-export async function generatePlan(profile: Profile, scenario: string, log = console.log): Promise<Plan | null> {
-  const { options, text } = userPrompt(profile, scenario);
+export async function generatePlan(profile: Profile, scenario: string, log = console.log, incident?: string): Promise<Plan | null> {
+  const { options, text } = userPrompt(profile, scenario, incident);
   if (options.length === 0) {
     log(`  ${profile.id} ${scenario}: no feasible option (pre-mortem case)`);
     return null;

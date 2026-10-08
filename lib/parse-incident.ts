@@ -2,18 +2,20 @@
 import { z } from "zod";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { claude, MODEL, FALLBACK_OPTS } from "./claude";
-import { transport, scenarios } from "./data";
-import { canonical, type ScenarioPart } from "./scenario";
+import { transport, scenarios, site } from "./data";
+import { canonical, CLOSABLE_PLACES, CLOSABLE_ROUTES, type ScenarioPart } from "./scenario";
 
 const ParsedSchema = z.object({
   parts: z.array(
     z.object({
-      type: z.enum(["STORM", "GATE_CLOSED", "TRAIN_DELAY", "SHUTTLE_FULL", "HEAT", "SET_DELAY"]),
+      type: z.enum(["STORM", "GATE_CLOSED", "TRAIN_DELAY", "SHUTTLE_FULL", "HEAT", "SET_DELAY", "PATH_CLOSED", "PLACE_CLOSED"]),
       gate: z.string().nullable().describe("GATE_CLOSED only: A, B, C or D"),
       line_code: z.string().nullable().describe("TRAIN_DELAY only: one of the line codes"),
       stage: z.string().nullable().describe("SET_DELAY only: RIVER, LAWN or TENT"),
       mins: z.number().nullable().describe("TRAIN_DELAY / SET_DELAY: minutes"),
       at: z.string().nullable().describe("STORM only: HH:MM it arrives, if stated"),
+      route_id: z.string().nullable().describe("PATH_CLOSED only: one of the walking path ids"),
+      place_id: z.string().nullable().describe("PLACE_CLOSED only: one of the pickup zone / stop ids"),
       evidence: z.string().describe("The words in the staff message this came from"),
     }),
   ),
@@ -26,6 +28,9 @@ const SYSTEM = `You turn a festival staff member's quick incident note into stru
 Scenario types: ${JSON.stringify(scenarios.types.map((t) => ({ type: t.type, pattern: t.code_pattern, label: t.label, effects: t.effects })))}
 Train lines (name → line_code): ${transport.trains.map((t) => `${t.line} → ${t.code}`).join(", ")}
 Gates: A, B, C, D. Stages: RIVER, LAWN, TENT.
+Walking paths (PATH_CLOSED route_id → name): ${site.routes.filter((x) => CLOSABLE_ROUTES.includes(x.id)).map((x) => `${x.id} → ${x.name}`).join("; ")}
+Pickup zones / stops (PLACE_CLOSED place_id → name): ${site.places.filter((x) => CLOSABLE_PLACES.includes(x.id)).map((x) => `${x.id} → ${x.name}`).join("; ")}
+A blocked, flooded or closed walking path → PATH_CLOSED. A closed pickup zone, shuttle stop or taxi rank → PLACE_CLOSED.
 "Accessible shuttle full" / "shuttle full" → SHUTTLE_FULL.
 
 Rules:
@@ -64,6 +69,13 @@ export async function parseIncident(text: string): Promise<ParsedIncident> {
     } else if (p.type === "SET_DELAY") {
       if (p.stage && ["RIVER", "LAWN", "TENT"].includes(p.stage) && p.mins && p.mins > 0) parts.push({ type: "SET_DELAY", stage: p.stage, mins: Math.round(p.mins) });
       else bad("unknown stage or delay");
+    }
+    else if (p.type === "PATH_CLOSED") {
+      if (p.route_id && CLOSABLE_ROUTES.includes(p.route_id)) parts.push({ type: "PATH_CLOSED", route: p.route_id });
+      else bad("unknown path");
+    } else if (p.type === "PLACE_CLOSED") {
+      if (p.place_id && CLOSABLE_PLACES.includes(p.place_id)) parts.push({ type: "PLACE_CLOSED", place: p.place_id });
+      else bad("unknown pickup zone or stop");
     }
     else parts.push({ type: p.type } as ScenarioPart);
     evidence.push(`${p.type}: "${p.evidence}"`);

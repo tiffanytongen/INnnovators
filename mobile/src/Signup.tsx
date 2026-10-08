@@ -4,11 +4,11 @@ import { useState } from "react";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import { postJSON, s } from "./theme";
 import { Btn, Card, Chips, Field, Notice, Select, Toggle, Txt, usePal } from "./ui";
+import { ContactFields, emptyContact } from "./ContactForm";
 
 const LANGS: [string, string][] = [["en", "English"], ["zh", "中文"], ["vi", "Tiếng Việt"], ["ar", "العربية"], ["hi", "हिन्दी"], ["es", "Español"], ["ko", "한국어"]];
 const LINES = ["Sandringham", "Frankston", "Belgrave", "Lilydale", "Craigieburn", "Werribee", "Hurstbridge", "Pakenham"];
 const ZONES: [string, string][] = [["pickup_zone_1", "Zone 1 · Gate A"], ["pickup_zone_2", "Zone 2 · Gate B"], ["pickup_zone_3", "Zone 3 · Gate D"]];
-const CONTACTS: [string, string][] = [["parent", "Parent"], ["friend", "Friend"], ["partner", "Partner"]];
 
 // Suburb → the Metro line that serves it, for the 8 lines in the Flinders St timetable this prototype has.
 // Only suburbs on exactly one of those lines; anything else just asks them to pick the line.
@@ -26,7 +26,8 @@ const lineFor = (suburb: string) => SUBURB_LINE[suburb.toLowerCase().replace(/\b
 
 export default function Signup({ server, onDone, onCancel }: { server: string; onDone: (id: string) => void; onCancel: () => void }) {
   const p = usePal();
-  const [f, setF] = useState({ name: "", lang: "en", suburb: "", mode: "train", line: "Sandringham", zone: "pickup_zone_2", contact: "parent", notify: true, contact_phone: "", step_free: false, leave_by: "" });
+  const [f, setF] = useState({ name: "", lang: "en", suburb: "", mode: "train", line: "Sandringham", zone: "pickup_zone_2", step_free: false, leave_by: "" });
+  const [contact, setContact] = useState(emptyContact());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF({ ...f, [k]: v });
@@ -37,7 +38,7 @@ export default function Signup({ server, onDone, onCancel }: { server: string; o
     setBusy(true);
     setError("");
     try {
-      const { id } = await postJSON<{ id: string }>(`${server}/api/profile`, { ...f, wheelchair: false, age: 20, group_size: 1 }, 90000);
+      const { id } = await postJSON<{ id: string }>(`${server}/api/profile`, { ...f, contact, wheelchair: false, age: 20, group_size: 1 }, 90000);
       onDone(id);
     } catch (e) {
       setError(e instanceof Error && !e.message.includes("abort") ? e.message : `Can't reach the Plan B server at ${server}.`);
@@ -89,15 +90,9 @@ export default function Signup({ server, onDone, onCancel }: { server: string; o
           )}
           {f.mode === "pickup" && (
             <>
-              <Txt k="small" c="sub">Who is picking you up?</Txt>
-              <Select options={CONTACTS} value={f.contact} onChange={(v) => set("contact", v)} />
               <Txt k="small" c="sub">Where are they meeting you?</Txt>
               <Select options={ZONES} value={f.zone} onChange={(v) => set("zone", v)} />
-              <Toggle label={`Text my ${f.contact} if the pickup changes`} on={f.notify} onPress={() => set("notify", !f.notify)} />
-              {f.notify && (
-                <Field value={f.contact_phone} onChangeText={(v) => set("contact_phone", v)} placeholder={`Their mobile (optional)`} keyboardType="phone-pad" />
-              )}
-              <Txt k="small" c="sub">{f.notify ? `If a storm, closure or delay moves your pickup point or time, Plan B texts your ${f.contact} the new details once staff approve it. Demo: the text is simulated, nothing is sent.` : `Nobody is texted. If your pickup changes, Plan B will remind you to tell your ${f.contact}.`}</Txt>
+              <Txt k="small" c="sub">Add who is collecting you below. If you agree, Plan B texts them when your pickup point or time changes (simulated in this demo).</Txt>
             </>
           )}
         </View>
@@ -110,6 +105,8 @@ export default function Signup({ server, onDone, onCancel }: { server: string; o
             <Field value={f.leave_by} onChangeText={(v) => set("leave_by", v)} placeholder="23:15" keyboardType="numbers-and-punctuation" style={{ width: 96, textAlign: "center" }} />
           </View>
         </View>
+
+        <ContactFields value={contact} onChange={setContact} />
 
         {error ? <Notice>{error}</Notice> : null}
         <Btn title="Continue to payment" onPress={submit} />

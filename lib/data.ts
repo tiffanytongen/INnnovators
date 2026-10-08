@@ -15,6 +15,17 @@ export type CapacityConfirmation = { confirmed_remaining?: number; capacity_conf
 export type Train = { line: string; code: string; platform: number; departures: string[]; step_free?: boolean; boarding_buffer_minutes?: number; departure_capacity?: Record<string, CapacityConfirmation> };
 export type Service = CapacityConfirmation & { id: string; kind: string; name: string; stop_id: string; depart: string; capacity: number; step_free?: boolean; boarding_buffer_minutes?: number; boarding_deadline?: string; cancelled?: boolean };
 
+export const RELATIONSHIPS = ["Parent", "Guardian", "Family Member", "Friend", "Other"] as const;
+export type Contact = {
+  name: string;
+  relationship: (typeof RELATIONSHIPS)[number];
+  phone_masked: string; // e.g. "+61 ••• ••• 123"
+  email_masked?: string;
+  /** The ATTENDEE agreed to this contact getting updates. The contact has not confirmed anything themselves. */
+  attendee_agreed: boolean;
+  updated_at: string;
+};
+
 export type Profile = {
   id: string;
   name: string;
@@ -31,6 +42,10 @@ export type Profile = {
   weight: number;
   hero?: boolean;
   notes?: string;
+  /** Emergency & pickup contact from the Details page. Stored masked: the demo never needs (or sends to) a real number. */
+  contact?: Contact;
+  /** Created through the in-app ticket checkout (not one of the generated sample attendees). */
+  checkout?: boolean;
   /** From ticket checkout: where they're heading (informational). */
   home_suburb?: string;
   /** Multiply the route's reference walking duration; 1.5 means 50% more time. */
@@ -85,4 +100,7 @@ export const toMin = (t: string) => {
 export const toTime = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 /** Pickup attendees whose contact gets a (simulated) text when Plan B changes their pickup. Opt-out at checkout; default on. */
-export const textsContact = (p: Profile) => p.home.mode === "pickup" && p.home.notify !== false;
+export const textsContact = (p: Profile) =>
+  p.contact ? p.contact.attendee_agreed : p.home.mode === "pickup" && p.home.notify !== false;
+/** How a contact appears to staff: "Sarah (Parent, +61 ••• ••• 123)". */
+export const contactLabel = (c: Contact) => `${c.name} (${c.relationship}, ${c.phone_masked})`;

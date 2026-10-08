@@ -7,6 +7,7 @@ import { parseScenario, pickCachedScenario, partToCode, describePart } from "./s
 import { readPlanFile } from "./generate";
 import { groupStuck, readFixes } from "./premortem";
 import type { Plan } from "./plan";
+import { classify } from "./replan";
 
 type Alloc = ReturnType<typeof allocate>;
 
@@ -34,7 +35,7 @@ export function planFor(personId: string, code: string): { plan: Plan | null; ke
 // a new pickup point, or a different time at the same point (e.g. waiting out a storm). Never sent for real.
 export function smsFor(p: Profile, plan: Plan, planA: Plan | null) {
   if (p.home.mode !== "pickup" || !textsContact(p)) return null;
-  const to = `${p.name}'s ${p.home.contact}${p.home.contact_phone ? ` (…${p.home.contact_phone})` : ""}`;
+  const to = p.contact ? `${p.contact.name}, ${p.name}'s ${p.contact.relationship.toLowerCase()} (${p.contact.phone_masked})` : `${p.name}'s ${p.home.contact}${p.home.contact_phone ? ` (…${p.home.contact_phone})` : ""}`;
   const where = nameOf(plan.transport.ref_id).replace(/ \(.*/, "");
   if (plan.notify_contact || (planA && planA.transport.ref_id !== plan.transport.ref_id))
     return { to, text: `Fieldday: pickup for ${p.name} has moved to ${where}, around ${plan.arrive}. ${p.name} has been told. Reply HELP for a volunteer.` };
@@ -106,6 +107,12 @@ export function buildPreview(code: string) {
     coverage: { exact, fallback, missing, profiles: profiles.length },
     simulated_sms,
     needs_human,
+    // Attendees with personal plans: covered by a pre-made plan, or needing a live AI replan.
+    replan: (() => {
+      const items = classify(code);
+      const n = (s: string) => items.filter((i) => i.status === s).length;
+      return { premade: n("premade"), still_valid: n("still_valid"), affected: n("affected"), manual: n("manual"), people: items.length };
+    })(),
   };
 }
 export type Preview = ReturnType<typeof buildPreview>;
