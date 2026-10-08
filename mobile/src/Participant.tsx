@@ -11,8 +11,8 @@ import SiteMap from "./SiteMap";
 import { crowdAwarePlan, normalizeBundle, resolveZone, supportedZones, type Bundle, type Plan, type Step } from "./participant-model";
 import { normalizeCrowd, type CrowdState } from "../../lib/crowd-model";
 import Signup from "./Signup";
-import { ATTENDEE, PLANB, F, addMin, getJSON, hhmm, s, store } from "./theme";
-import { Btn, Card, Check, Chips, Field, Notice, PalContext, Txt, usePal } from "./ui";
+import { ATTENDEE, PLANB, C, F, addMin, getJSON, hhmm, s, store } from "./theme";
+import { Btn, Card, Check, Chips, Dot, Field, InnerPill, Notice, PalContext, Tile, Txt, onTile, usePal } from "./ui";
 
 // Types, safe bundle loading and crowd-aware re-ranking live in participant-model.ts (offline-safe, tested).
 // Short, attendee-facing labels for what changed (organizers see the full detail).
@@ -85,8 +85,8 @@ function PickScreen({ server, onServer, onPick, onSignup }: { server: string; on
         <Card style={{ padding: 0, gap: 0 }}>
           {HEROES.map((h, i) => (
             <Pressable key={h.id} onPress={() => onPick(h.id)} style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderTopWidth: i ? 1 : 0, borderTopColor: p.line }, pressed && s.pressed]}>
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: p.band, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontFamily: F.displayBold, fontSize: 18, color: p.ink }}>{h.name[0]}</Text>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: [C.green, C.pink, C.yellow][i], alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontFamily: F.displayBold, fontSize: 18, color: i === 2 ? C.ink : C.white }}>{h.name[0]}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Txt k="big">{h.name}</Txt>
@@ -242,7 +242,6 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const t = strings(bundle.profile.lang);
   const [step, setStep] = useState(unavailable ? 1 + plan.alternatives.length : 0); // 0 = plan, 1..n = alternatives, n+1 = get help
   const [pickZone, setPickZone] = useState(false);
-  const [showRoute, setShowRoute] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -282,58 +281,80 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
     : t[st.transport.mode];
   const countdown = minsUntil(leave, now);
 
-  return (
-    <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
-      {/* 1. What changed */}
-      <View style={{ paddingHorizontal: 24, paddingTop: 12, paddingBottom: 6, gap: 8 }}>
-        <View style={s.between}>
-          <View style={{ alignSelf: "flex-start", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 5, backgroundColor: isPlanB ? p.soft : p.raised }}>
-            <Txt k="eyebrow" c={isPlanB ? "accent" : "sub"}>{isPlanB ? `Plan B${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}` : t.festivalDay}</Txt>
-          </View>
-          {!online && <Txt k="small" c="sub">Offline · saved on this phone</Txt>}
-        </View>
-        <Txt k="title">{isPlanB ? t.wayHomeChanged : t.wayHomeTonight}</Txt>
-        <Txt c="sub">{isPlanB ? changeLine : t.allNormalSub}</Txt>
-      </View>
+  const transportGlyph = "↗";
+  const rideTitle = st.transport.depart ? transportTitle.replace(` ${st.transport.depart}`, "") : transportTitle;
+  const onHero = C.white;
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 22 }}>
+  return (
+    <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={{ paddingBottom: 48, flexGrow: 1 }}>
+      {/* Map across the top, with the route highlighted; the white sheet slides over it */}
+      {bundle.map && !escalating ? (
+        <SiteMap
+          map={bundle.map}
+          closedGates={closed?.gates}
+          closedPlaces={closed?.places}
+          storm={closed?.storm}
+          highlight={{ route_id: st.route_id, gate_id: st.gate_id, dest_id: dest, meetup_id: bundle.profile.group ? st.group_meetup : null }}
+          accent={p.accent}
+        />
+      ) : null}
+
+      <View style={{ flexGrow: 1, backgroundColor: p.card, borderTopLeftRadius: 36, borderTopRightRadius: 36, marginTop: bundle.map && !escalating ? -36 : 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 18 }}>
+        <View style={{ alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: p.line }} />
+
+        {/* 1. What changed */}
+        <View style={{ gap: 6 }}>
+          <View style={s.between}>
+            <View style={{ alignSelf: "flex-start", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 6, backgroundColor: isPlanB ? C.pink : p.raised }}>
+              <Txt k="eyebrow" style={{ color: isPlanB ? C.white : p.ink }}>{isPlanB ? `Plan B${trigger ? ` · ${hhmm(trigger.issued_at)}` : ""}` : t.festivalDay}</Txt>
+            </View>
+            {!online && <Txt k="small" c="sub">Offline · saved on this phone</Txt>}
+          </View>
+          <Txt k="title">{isPlanB ? t.wayHomeChanged : t.wayHomeTonight}</Txt>
+          <Txt c="sub">{isPlanB ? changeLine : t.allNormalSub}</Txt>
+        </View>
+
         {plan.needs_human && <Notice>{t.needsHuman}</Notice>}
         {!exact && <Notice tone="ink">{t.closestPlan}</Notice>}
 
         {escalating ? (
           <View style={{ gap: 14 }}>
-            <Txt k="eyebrow" c="sub">{t.escalateTitle}</Txt>
-            <Txt k="title">{plan.escalate_text_localised}</Txt>
+            <Tile color={C.pink} glyph="!">
+              <Txt k="smallStrong" style={{ color: C.white }}>{t.escalateTitle}</Txt>
+              <Txt k="title" style={{ color: C.white }}>{plan.escalate_text_localised}</Txt>
+            </Tile>
             {notEn && <Txt c="sub">Go to the nearest info tent or show this screen to any volunteer.</Txt>}
-            <Card>
+            <View style={{ backgroundColor: p.raised, borderRadius: 24, padding: 18, gap: 4 }}>
               <Txt k="bodyStrong">{t.showVolunteer}</Txt>
               <Txt>{bundle.profile.name} · ID {bundle.profile.id}</Txt>
               <Txt c="sub">Planned: Gate {plan.gate_id.replace("gate_", "")} → {plan.transport.line} {plan.transport.depart ?? ""}</Txt>
-            </Card>
+            </View>
             <Btn kind="ghost" title={t.backToFirst} onPress={() => setStep(0)} />
           </View>
         ) : (
           <>
-            {/* 2. What to do now: the one strong colour tile on the screen */}
-            <View style={{ backgroundColor: p.hero, borderRadius: 28, padding: 22, gap: 2 }}>
-              <Txt k="bodyStrong" c="sub">
-                {step > 0 ? `${t.option} ${step + 1} ${t.of} ${steps.length} · ` : ""}
-                {countdown === null ? (isPlanB ? t.leaveAt : t.bestTime) : countdown <= 0 ? t.leaveNow : t.leaveIn}
-              </Txt>
-              <Txt k="mega">{countdown !== null && countdown > 0 ? `${countdown} ${t.minShort}` : leave}</Txt>
-              {countdown !== null && countdown > 0 ? <Txt k="bodyStrong" c="sub">{t.atTime} {leave}</Txt> : null}
-              {st.wait_until && st.wait_at ? (
-                <View style={{ alignSelf: "flex-start", backgroundColor: p.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7, marginTop: 8 }}>
-                  <Txt k="smallStrong">{t.waitAtUntil}: {name(st.wait_at)}</Txt>
-                </View>
-              ) : null}
-              {!isPlanB && step === 0 ? <Txt k="small" style={{ marginTop: 6, color: p.onHero, opacity: 0.75 }}>{st.wait_until ? t.waveNote : t.normalNote}</Txt> : null}
-              <Txt style={{ marginTop: 12, color: p.onHero }}>{st.text_localised}</Txt>
+            {/* 2. Your way home: one solid colour card (green = Plan A, pink = Plan B) */}
+            <View style={{ backgroundColor: p.hero, borderRadius: 30, padding: 20, gap: 4 }}>
+              <View style={s.between}>
+                <Txt k="bodyStrong" style={{ color: onHero, flex: 1 }}>
+                  {step > 0 ? `${t.option} ${step + 1} ${t.of} ${steps.length} · ` : ""}
+                  {countdown === null ? (isPlanB ? t.leaveAt : t.bestTime) : countdown <= 0 ? t.leaveNow : t.leaveIn}
+                </Txt>
+                <Dot glyph="→" color={p.hero} size={36} />
+              </View>
+              <Txt k="mega" style={{ color: onHero }}>{countdown !== null && countdown > 0 ? `${countdown} ${t.minShort}` : leave}</Txt>
+              {countdown !== null && countdown > 0 ? <Txt k="bodyStrong" style={{ color: onHero }}>{t.atTime} {leave}</Txt> : null}
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                {st.wait_until && st.wait_at ? <InnerPill>{t.waitAtUntil}: {name(st.wait_at)}</InnerPill> : null}
+                <InnerPill>{t.gate} {gate}{st.transport.depart ? ` · ${transportLabel} ${st.transport.depart}` : ""}</InnerPill>
+              </View>
+              {!isPlanB && step === 0 ? <Txt k="small" style={{ marginTop: 10, color: onHero }}>{st.wait_until ? t.waveNote : t.normalNote}</Txt> : null}
+              <Txt style={{ marginTop: 8, color: onHero }}>{st.text_localised}</Txt>
             </View>
 
             {/* Where they're starting from (if they moved), and any re-route because a path got busy */}
             {zones.length > 1 && step === 0 && (
-              <View style={{ gap: 8, marginVertical: -8 }}>
+              <View style={{ gap: 8, marginVertical: -6 }}>
                 <Pressable onPress={() => setPickZone(!pickZone)} style={({ pressed }) => [s.between, { minHeight: 44 }, pressed && s.pressed]}>
                   <Txt k="small" c="sub">Starting from {name(zone)}</Txt>
                   <Txt k="smallStrong" c="accent">{pickZone ? "Done" : "Change"}</Txt>
@@ -347,69 +368,35 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
               <Notice tone="ink">Path busy: switched from {name(reroutedFrom).replace(/ \(.*/, "")} to {name(st.route_id).replace(/ \(.*/, "")}.</Notice>
             )}
 
-            {/* 3. The journey, once: gate → transport on one line */}
-            <Card style={{ gap: 0, padding: 0 }}>
-              <View style={{ padding: 20, flexDirection: "row", gap: 16 }}>
-                <View style={{ width: 56, alignItems: "center" }}>
-                  <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: p.ink, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontFamily: F.displayBold, fontSize: 30, color: "#FFFFFF" }}>{gate}</Text>
-                  </View>
-                  <View style={{ width: 2, flex: 1, minHeight: 28, marginVertical: 6, borderRadius: 1, backgroundColor: p.line }} />
-                  <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 4, borderColor: p.accent, backgroundColor: p.card, marginBottom: 14 }} />
-                </View>
-                <View style={{ flex: 1, justifyContent: "space-between", gap: 20 }}>
-                  <View style={{ paddingTop: 4 }}>
-                    <Txt k="headline">{t.gate} {gate}</Txt>
-                    {walk !== null && (
-                      <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 10, marginTop: 2 }}>
-                        <Txt k="small" c="sub">{walk} {t.minWalk}</Txt>
-                        {covered && <Txt k="smallStrong" c="ok">{t.coveredWord}</Txt>}
-                        {stepFree && <Txt k="smallStrong" c="ok">{t.stepFreeWord}</Txt>}
-                        {pathLevel === "heavy" ? <Txt k="smallStrong" c="danger">busy path</Txt> : pathLevel === "moderate" ? <Txt k="smallStrong" c="danger">some crowding</Txt> : null}
-                      </View>
-                    )}
-                  </View>
-                  <View style={s.between}>
-                    <View style={{ flex: 1 }}>
-                      <Txt k="small" c="sub">{transportLabel}</Txt>
-                      <Txt k="big">{transportTitle}</Txt>
-                    </View>
-                    {st.transport.depart ? <Txt k="huge">{st.transport.depart}</Txt> : null}
-                  </View>
-                </View>
+            {/* 3. The journey as two flat tiles: walk to the gate → ride */}
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Tile color={C.yellow} glyph={gate} style={{ flex: 1, minHeight: 170 }}>
+                <Txt k="headline" style={{ color: onTile(C.yellow) }}>{t.gate} {gate}</Txt>
+                {walk !== null ? <Txt k="smallStrong" style={{ color: onTile(C.yellow) }}>{walk} {t.minWalk}</Txt> : null}
+                {covered ? <Txt k="small" style={{ color: onTile(C.yellow) }}>{t.coveredWord}</Txt> : null}
+                {stepFree ? <Txt k="small" style={{ color: onTile(C.yellow) }}>{t.stepFreeWord}</Txt> : null}
+                {pathLevel === "heavy" ? <Txt k="smallStrong" style={{ color: onTile(C.yellow) }}>Busy path</Txt> : pathLevel === "moderate" ? <Txt k="smallStrong" style={{ color: onTile(C.yellow) }}>Some crowding</Txt> : null}
+              </Tile>
+              <Tile color={C.purple} glyph={transportGlyph} style={{ flex: 1.3, minHeight: 170 }}>
+                {rideTitle !== transportLabel ? <Txt k="small" style={{ color: C.white }}>{transportLabel}</Txt> : null}
+                <Txt k="bodyStrong" style={{ color: C.white }}>{rideTitle}</Txt>
+                {st.transport.depart ? <Txt k="huge" style={{ color: C.white }}>{st.transport.depart}</Txt> : null}
+              </Tile>
+            </View>
+            {(st.transport.depart && atStop) || (st.group_meetup && bundle.profile.group) || st.volunteer_escort || st.notify_contact ? (
+              <View style={{ backgroundColor: p.raised, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 14, gap: 4 }}>
+                {st.transport.depart && atStop ? <Txt k="small">{t.atStop} {atStop}</Txt> : null}
+                {st.group_meetup && bundle.profile.group ? <Txt k="small">{t.ifSeparated}: {name(st.group_meetup)}</Txt> : null}
+                {st.volunteer_escort ? <Txt k="small">{t.volunteerShort}</Txt> : null}
+                {st.notify_contact ? <Txt k="small">{t.contactNotified}</Txt> : null}
               </View>
-              {(st.transport.depart && atStop) || (st.group_meetup && bundle.profile.group) || st.volunteer_escort || st.notify_contact ? (
-                <View style={{ backgroundColor: p.raised, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingHorizontal: 20, paddingVertical: 14, gap: 4 }}>
-                  {st.transport.depart && atStop ? <Txt k="small">{t.atStop} {atStop}</Txt> : null}
-                  {st.group_meetup && bundle.profile.group ? <Txt k="small">{t.ifSeparated}: {name(st.group_meetup)}</Txt> : null}
-                  {st.volunteer_escort ? <Txt k="small">{t.volunteerShort}</Txt> : null}
-                  {st.notify_contact ? <Txt k="small">{t.contactNotified}</Txt> : null}
-                </View>
-              ) : null}
-            </Card>
+            ) : null}
 
-            <Btn title={showRoute ? t.hideRoute : t.startRoute} onPress={() => setShowRoute(!showRoute)} />
-            {showRoute && bundle.map && (
-              <View style={[s.shadow, { borderRadius: 28, overflow: "hidden", backgroundColor: p.card }]}>
-                <SiteMap
-                  map={bundle.map}
-                  closedGates={closed?.gates}
-                  closedPlaces={closed?.places}
-                  storm={closed?.storm}
-                  highlight={{ route_id: st.route_id, gate_id: st.gate_id, dest_id: dest, meetup_id: bundle.profile.group ? st.group_meetup : null }}
-                  accent={p.accent}
-                />
-              </View>
-            )}
-
-            {/* 4. Why, and other options: quiet, below the action */}
-            <View>
-              <Pressable accessibilityRole="button" accessibilityState={{ expanded: showWhy }} onPress={() => setShowWhy(!showWhy)} style={({ pressed }) => [s.between, { minHeight: 52, borderTopWidth: 1, borderTopColor: p.line }, pressed && s.pressed]}>
-                <Txt k="bodyStrong">{t.whyPlan}</Txt>
-                <Txt k="headline" c="sub">{showWhy ? "−" : "→"}</Txt>
-              </Pressable>
+            {/* 4. Why, and other options: white pills, below the action */}
+            <View style={{ gap: 10 }}>
+              <Pill label={t.whyPlan} sign={showWhy ? "−" : "+"} onPress={() => setShowWhy(!showWhy)} />
               {showWhy && (
-                <Card style={{ gap: 8, marginBottom: 16 }}>
+                <View style={{ backgroundColor: p.raised, borderRadius: 24, padding: 18, gap: 8 }}>
                   {stepFree && <Check>{t.ckStepFree}</Check>}
                   {covered && <Check>{t.ckCovered}</Check>}
                   {(closed?.gates ?? []).filter((g) => g !== st.gate_id).map((g) => (
@@ -421,12 +408,9 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
                   <Txt c="sub" style={{ marginTop: 4 }}>{st.reason_localised}</Txt>
                   {notEn && <Txt k="small" c="sub">{st.action}. {st.reason}</Txt>}
                   {plan.journey?.main_tradeoff && step === 0 ? <Txt k="small" c="sub">{plan.journey.main_tradeoff}</Txt> : null}
-                </Card>
+                </View>
               )}
-              <Pressable accessibilityRole="button" onPress={() => { setStep(step + 1); setShowRoute(false); setShowWhy(false); }} style={({ pressed }) => [s.between, { minHeight: 52, borderTopWidth: 1, borderBottomWidth: 1, borderColor: p.line }, pressed && s.pressed]}>
-                <Txt k="bodyStrong">{t.otherOption}</Txt>
-                <Txt k="headline" c="sub">→</Txt>
-              </Pressable>
+              <Pill label={t.otherOption} sign="→" onPress={() => { setStep(step + 1); setShowWhy(false); }} />
               {step > 0 && <Btn kind="ghost" title={t.backToFirst} onPress={() => setStep(0)} style={{ alignSelf: "flex-start" }} />}
             </View>
           </>
@@ -435,5 +419,16 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
         <Btn kind="ghost" title="Switch attendee (demo)" onPress={onSwitch} />
       </View>
     </ScrollView>
+  );
+}
+
+// Full-width white pill row with a trailing sign (like the travel-mode pills).
+function Pill({ label, sign, onPress }: { label: string; sign: string; onPress: () => void }) {
+  const p = usePal();
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [s.between, { minHeight: 56, paddingHorizontal: 20, borderRadius: 999, borderWidth: 1, borderColor: p.line, backgroundColor: p.card }, pressed && s.pressed]}>
+      <Txt k="bodyStrong">{label}</Txt>
+      <Txt k="headline" c="sub">{sign}</Txt>
+    </Pressable>
   );
 }

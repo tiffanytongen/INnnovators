@@ -2,7 +2,7 @@
 // Everything reads the current palette, so the same component works for attendee and organizer.
 import { createContext, useContext, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
-import { ATTENDEE, F, T, s, type Pal } from "./theme";
+import { ATTENDEE, C, F, T, s, type Pal } from "./theme";
 
 export const PalContext = createContext<Pal>(ATTENDEE);
 export const usePal = () => useContext(PalContext);
@@ -20,15 +20,45 @@ export function Rule({ style }: { style?: StyleProp<ViewStyle> }) {
 }
 
 // White rounded card with a soft shadow. Use only to group genuinely related things.
-export function Card({ children, style, tint }: { children: ReactNode; style?: StyleProp<ViewStyle>; tint?: boolean }) {
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const p = usePal();
-  return <View style={[s.shadow, { backgroundColor: tint ? p.soft : p.card, borderRadius: 24, padding: 20, gap: 12 }, style]}>{children}</View>;
+  return <View style={[s.shadow, { backgroundColor: p.card, borderRadius: 28, padding: 20, gap: 12 }, style]}>{children}</View>;
+}
+
+// Small white circle with a glyph, for the top corner of colour tiles.
+export function Dot({ glyph, color, size = 40 }: { glyph: string; color: string; size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.white, alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ fontFamily: F.bodyBold, fontSize: size * 0.45, lineHeight: size * 0.6, color }}>{glyph}</Text>
+    </View>
+  );
+}
+
+// Solid flat colour tile (ride-app style): icon circle on top, bold label at the bottom.
+// Text is white, except on yellow where it's ink for legibility.
+export function Tile({ color, glyph, children, style }: { color: string; glyph?: string; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[{ backgroundColor: color, borderRadius: 28, padding: 18, gap: 10, justifyContent: "space-between" }, style]}>
+      {glyph ? <Dot glyph={glyph} color={color === C.yellow ? C.ink : color} /> : null}
+      <View style={{ gap: 2 }}>{children}</View>
+    </View>
+  );
+}
+export const onTile = (color: string) => (color === C.yellow ? C.ink : C.white);
+
+// White pill inside a colour tile (like the "Taxi" pill on the ride card).
+export function InnerPill({ children, color }: { children: ReactNode; color?: string }) {
+  return (
+    <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: C.white, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 }}>
+      <Text style={[T.smallStrong, { color: color ?? C.ink }]}>{children}</Text>
+    </View>
+  );
 }
 
 // "solid" = the one main action; "line" = secondary; "ghost" = quiet text link.
 export function Btn({ title, onPress, kind = "solid", busy, disabled, style }: { title: string; onPress: () => void; kind?: "solid" | "line" | "ghost"; busy?: boolean; disabled?: boolean; style?: StyleProp<ViewStyle> }) {
   const p = usePal();
-  const fg = kind === "solid" ? p.onAccent : kind === "line" ? p.accent : p.sub;
+  const fg = kind === "solid" ? p.onAccent : kind === "line" ? p.ink : p.sub;
   return (
     <Pressable
       accessibilityRole="button"
@@ -37,7 +67,7 @@ export function Btn({ title, onPress, kind = "solid", busy, disabled, style }: {
       style={({ pressed }) => [
         kind === "ghost"
           ? { minHeight: 44, justifyContent: "center", alignItems: "center", flexDirection: "row", gap: 8 }
-          : { minHeight: 56, paddingHorizontal: 24, borderRadius: 999, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: kind === "solid" ? p.accent : "transparent", borderWidth: kind === "line" ? 1.5 : 0, borderColor: p.accent },
+          : { minHeight: 56, paddingHorizontal: 24, borderRadius: 999, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: kind === "solid" ? p.accent : p.card, borderWidth: kind === "line" ? 1 : 0, borderColor: p.line },
         (pressed || busy || disabled) && s.pressed,
         style,
       ]}
@@ -84,18 +114,20 @@ export function Field(props: TextInputProps) {
 export function Notice({ tone = "danger", children }: { tone?: "danger" | "ink"; children: ReactNode }) {
   const p = usePal();
   return (
-    <View style={{ backgroundColor: tone === "danger" ? p.dangerSoft : p.raised, borderRadius: 18, padding: 16 }}>
-      <Txt k="bodyStrong" c={tone === "danger" ? "danger" : "ink"}>{children}</Txt>
+    <View style={{ backgroundColor: tone === "danger" ? p.dangerSoft : p.raised, borderRadius: 22, padding: 16 }}>
+      <Txt k="bodyStrong" style={{ color: tone === "danger" ? C.white : p.ink }}>{children}</Txt>
     </View>
   );
 }
 
-// ✓ line for "Why this plan" lists.
+// ✓ line for "Why this plan" lists: small green circle with a white tick.
 export function Check({ children }: { children: ReactNode }) {
   const p = usePal();
   return (
     <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
-      <Text style={{ fontFamily: F.bodyBold, fontSize: 17, lineHeight: 25, color: p.ok }}>✓</Text>
+      <View style={{ width: 22, height: 22, borderRadius: 11, marginTop: 2, backgroundColor: p.ok, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ fontFamily: F.bodyBold, fontSize: 12, color: C.white }}>✓</Text>
+      </View>
       <Txt style={{ flex: 1 }}>{children}</Txt>
     </View>
   );

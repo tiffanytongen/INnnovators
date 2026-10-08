@@ -8,8 +8,8 @@ import { canonical, describePart, parseScenario, type ScenarioPart } from "../..
 import SiteMap, { type MapData } from "./SiteMap";
 import WeatherPanel from "./WeatherPanel";
 import CrowdPanel from "./CrowdPanel";
-import { F, getJSON, postJSON, s } from "./theme";
-import { Btn, Card, Check, Field, Notice, Txt, usePal } from "./ui";
+import { C, F, getJSON, postJSON, s } from "./theme";
+import { Btn, Card, Check, Field, Notice, Tile, Txt, usePal } from "./ui";
 
 const DEMO_TEXT = "Storm at 11pm, Gate A closed, Sandringham line +25 min, accessible shuttle full";
 const WHO: Record<string, string> = { mei_19: "Mei · reads Mandarin", tom_70: "Tom · wheelchair", jake_16: "Jake, 16 · parent pickup" };
@@ -41,8 +41,8 @@ export default function Organizer({ server }: { server: string }) {
         {([["tonight", "Tonight"], ["premortem", "Pre-mortem"]] as const).map(([k, l]) => {
           const on = screen === k;
           return (
-            <Pressable key={k} onPress={() => setScreen(k)} style={({ pressed }) => [{ paddingHorizontal: 16, minHeight: 38, justifyContent: "center", borderRadius: 999, backgroundColor: on ? p.card : "transparent" }, pressed && s.pressed]}>
-              <Text style={{ fontFamily: on ? F.bodySemi : F.body, fontSize: 15, color: on ? p.ink : p.sub }}>{l}</Text>
+            <Pressable key={k} onPress={() => setScreen(k)} style={({ pressed }) => [{ paddingHorizontal: 16, minHeight: 38, justifyContent: "center", borderRadius: 999, backgroundColor: on ? C.purple : p.card }, pressed && s.pressed]}>
+              <Text style={{ fontFamily: F.bodySemi, fontSize: 15, color: on ? C.white : p.ink }}>{l}</Text>
             </Pressable>
           );
         })}
@@ -135,11 +135,11 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
       <Header eyebrow="Fieldday Ops" title="Riverside" sub={total ? `${total.toLocaleString()} attendees · Saturday night` : "Saturday night"} />
       <View style={{ paddingHorizontal: 20, paddingTop: 24, gap: 22 }}>
         {!preview && normal && (
-          <Card tint>
-            <Txt k="eyebrow" c="ok">Running normally</Txt>
-            <Txt k="big">Plan B is spreading departures.</Txt>
-            <Txt c="sub">{normal.waited_people.toLocaleString()} attendees have a second-wave leaving time, so no gate goes over its limit.</Txt>
-          </Card>
+          <Tile color={C.green} glyph="✓">
+            <Txt k="smallStrong" style={{ color: C.white }}>Running normally</Txt>
+            <Txt k="headline" style={{ color: C.white }}>Plan B is spreading departures.</Txt>
+            <Txt style={{ color: C.white }}>{normal.waited_people.toLocaleString()} attendees have a second-wave leaving time, so no gate goes over its limit.</Txt>
+          </Tile>
         )}
 
         {/* Something changed? */}
@@ -170,15 +170,15 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
             <Txt c="sub">{preview.total_people.toLocaleString()} attendees checked</Txt>
             <View style={{ flexDirection: "row", gap: 12 }}>
               {/* Solved: the organizer's one strong colour tile */}
-              <View style={[s.shadow, { flex: 1, backgroundColor: p.hero, borderRadius: 28, padding: 18, gap: 6, minHeight: 150, justifyContent: "space-between" }]}>
-                <Txt k="smallStrong" style={{ color: p.onHero, opacity: 0.85 }}>Rerouted automatically</Txt>
-                <Txt k="huge" style={{ color: p.onHero }}>{solved.toLocaleString()}</Txt>
-              </View>
+              <Tile color={C.green} glyph="✓" style={{ flex: 1, minHeight: 170 }}>
+                <Txt k="huge" style={{ color: C.white }}>{solved.toLocaleString()}</Txt>
+                <Txt k="smallStrong" style={{ color: C.white }}>Rerouted automatically</Txt>
+              </Tile>
               {/* Needs you: semantic warning colour, only when there is something to do */}
-              <View style={{ flex: 1, backgroundColor: preview.no_plan_people ? p.dangerSoft : p.soft, borderRadius: 28, padding: 18, gap: 6, minHeight: 150, justifyContent: "space-between" }}>
-                <Txt k="smallStrong" c={preview.no_plan_people ? "danger" : "ok"}>{preview.no_plan_people ? "Need you" : "Everyone has a way home"}</Txt>
-                <Txt k="huge" c={preview.no_plan_people ? "danger" : "ok"}>{preview.no_plan_people.toLocaleString()}</Txt>
-              </View>
+              <Tile color={preview.no_plan_people ? C.pink : C.purple} glyph={preview.no_plan_people ? "!" : "✓"} style={{ flex: 1, minHeight: 170 }}>
+                <Txt k="huge" style={{ color: C.white }}>{preview.no_plan_people.toLocaleString()}</Txt>
+                <Txt k="smallStrong" style={{ color: C.white }}>{preview.no_plan_people ? "Need you" : "Everyone has a way home"}</Txt>
+              </Tile>
             </View>
             {preview.no_plan_people > 0 && (
               <>
@@ -200,19 +200,19 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
                 </View>
               </>
             )}
-            <Card style={{ gap: 4 }}>
+            <Tile color={C.yellow} style={{ gap: 4 }}>
               <View style={s.between}>
                 <Txt k="bodyStrong">Released in waves</Txt>
-                <Txt k="headline">{preview.waited_people.toLocaleString()}</Txt>
+                <Txt k="huge">{preview.waited_people.toLocaleString()}</Txt>
               </View>
-              <Txt k="small" c="sub">Later leaving times keep every gate under capacity.</Txt>
-              <Btn kind="ghost" title={showMap ? "Hide site map" : "Show site map"} onPress={() => setShowMap(!showMap)} style={{ alignSelf: "flex-start" }} />
+              <Txt k="small">Later leaving times keep every gate under capacity.</Txt>
+              <Btn kind="line" title={showMap ? "Hide site map" : "Show site map"} onPress={() => setShowMap(!showMap)} style={{ alignSelf: "flex-start" }} />
               {showMap && (
-                <View style={{ borderRadius: 20, overflow: "hidden", borderWidth: 1, borderColor: p.line }}>
+                <View style={{ borderRadius: 20, overflow: "hidden" }}>
                   <SiteMap map={preview.map} closedGates={preview.closed_gates} closedPlaces={preview.closed_places} storm={preview.storm} gateDelta={preview.gate_delta} accent={p.accent} />
                 </View>
               )}
-            </Card>
+            </Tile>
           </View>
         )}
 
@@ -228,7 +228,7 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
             </View>
             <View style={{ gap: 6, marginTop: 6 }}>
               <Txt k="small" c="sub">Message preview (simulated)</Txt>
-              <View style={{ backgroundColor: p.raised, borderRadius: 20, borderBottomLeftRadius: 6, padding: 16, gap: 4, maxWidth: 320 }}>
+              <View style={{ backgroundColor: p.card, borderRadius: 22, borderBottomLeftRadius: 6, padding: 16, gap: 4, maxWidth: 320 }}>
                 <Txt k="smallStrong">Fieldday</Txt>
                 <Txt k="small">Your way home has changed due to {cause}. Your Plan B is ready:</Txt>
                 <Txt k="smallStrong" c="accent">planb.link/m3i9</Txt>
@@ -246,7 +246,7 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
               ))}
             </View>
             {sent ? (
-              <Card tint><Txt k="bodyStrong" c="ok">Sent (simulated). Phones update within seconds.</Txt></Card>
+              <Tile color={C.green} glyph="✓"><Txt k="bodyStrong" style={{ color: C.white }}>Sent (simulated). Phones update within seconds.</Txt></Tile>
             ) : (
               <>
                 <View style={s.row}>
@@ -282,8 +282,8 @@ function Fold({ title, sub, children }: { title: string; sub: string; children: 
   const p = usePal();
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ borderTopWidth: 1, borderBottomWidth: 1, marginTop: -1, borderColor: p.line }}>
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={({ pressed }) => [s.between, { minHeight: 60 }, pressed && s.pressed]}>
+    <View style={{ backgroundColor: p.card, borderRadius: 28, paddingHorizontal: 20, marginBottom: 10 }}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={({ pressed }) => [s.between, { minHeight: 68 }, pressed && s.pressed]}>
         <View style={{ flex: 1 }}>
           <Txt k="bodyStrong">{title}</Txt>
           <Txt k="small" c="sub">{sub}</Txt>
@@ -356,13 +356,13 @@ function PremortemScreen({ server, focus }: { server: string; focus: string | nu
                 </View>
               )}
               {c && current.no_plan > 0 && (
-                <View style={[s.shadow, { backgroundColor: p.hero, borderRadius: 28, padding: 20, gap: 14 }]}>
+                <View style={{ backgroundColor: C.green, borderRadius: 28, padding: 20, gap: 14 }}>
                   <View style={{ gap: 2 }}>
-                    <Txt k="smallStrong" style={{ color: p.onHero, opacity: 0.85 }}>Recommended contingency</Txt>
-                    <Txt k="big" style={{ color: p.onHero }}>+1 {c.label}</Txt>
-                    <Txt k="small" style={{ color: p.onHero, opacity: 0.85 }}>Departs {c.depart} · {c.capacity} seats</Txt>
+                    <Txt k="smallStrong" style={{ color: C.white }}>Recommended contingency</Txt>
+                    <Txt k="big" style={{ color: C.white }}>+1 {c.label}</Txt>
+                    <Txt k="small" style={{ color: C.white }}>Departs {c.depart} · {c.capacity} seats</Txt>
                   </View>
-                  <Txt k="huge" style={{ color: p.onHero }}>{current.no_plan} → {c.after}</Txt>
+                  <Txt k="huge" style={{ color: C.white }}>{current.no_plan} → {c.after}</Txt>
                   <Pressable accessibilityRole="button" onPress={apply} disabled={busy === "apply"} style={({ pressed }) => [{ minHeight: 54, borderRadius: 999, backgroundColor: p.card, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8 }, (pressed || busy === "apply") && s.pressed]}>
                     {busy === "apply" && <ActivityIndicator color={p.accent} />}
                     <Txt k="big" c="accent">Apply contingency</Txt>

@@ -1,59 +1,67 @@
 // Shared look, type and network helpers.
 //
-// A neutral, layered base (warm off-white, white cards, dark ink) for both roles; colour guides attention:
-//   Attendee  — peach accent: the "leave at" hero tile and the main action.
-//   Organizer — green accent: solved/apply tiles and actions.
-//   Semantic  — red for "needs you"/warnings, map colours on the map.
-// Type: Bricolage Grotesque for headings and big numbers, Figtree for reading text.
+// Flat colour, ride-app style: a light grey screen, white sheets and cards, and a few solid, distinct
+// colour tiles with white text (never tints or shades of one hue):
+//   green  — Plan A / solved     pink   — Plan B / needs you
+//   yellow — waves / gates        purple — the main action and selected pills
+// Type: Figtree throughout (ExtraBold for headings and big numbers).
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
 // ---- fonts (loaded in App.tsx; family name = the key passed to useFonts) ----
 export const F = {
-  display: "BricolageGrotesque_600SemiBold",
-  displayBold: "BricolageGrotesque_700Bold",
+  display: "Figtree_800ExtraBold",
+  displayBold: "Figtree_800ExtraBold",
   body: "Figtree_400Regular",
   bodyMed: "Figtree_500Medium",
   bodySemi: "Figtree_600SemiBold",
   bodyBold: "Figtree_700Bold",
 };
 
+// ---- the flat colour set ----
+export const C = {
+  green: "#3DAA6E",
+  pink: "#EF7A92",
+  yellow: "#F6C744",
+  purple: "#6C5CE7",
+  white: "#FFFFFF",
+  ink: "#16161D",
+};
+
 // ---- palettes ----
 export type Pal = {
   name: "attendee" | "planb" | "organizer";
-  bg: string; // screen: warm off-white
-  band: string; // top bar / header area: neutral, never flooded with accent
-  card: string;
-  raised: string; // inputs, inner panels
+  bg: string; // screen: light grey
+  band: string; // top bar: same grey
+  card: string; // white sheets and cards
+  raised: string; // inputs, inner panels: grey
   ink: string;
-  sub: string; // secondary text (≥4.5:1 on bg and card)
+  sub: string;
   line: string;
-  accent: string; // the one primary action colour
+  accent: string; // main action + selected pills (purple)
   onAccent: string;
-  soft: string; // light accent tint for small highlights
-  hero: string; // the one strong colour tile per screen (attendee: leave-at; organizer: solved)
+  soft: string; // quiet panel (grey, never a tint)
+  hero: string; // the solid colour "your ride" tile
   onHero: string;
   danger: string;
-  dangerSoft: string;
+  dangerSoft: string; // solid pink for warnings
   ok: string;
 };
 
-const NEUTRAL = { bg: "#F7F5F1", band: "#F7F5F1", card: "#FFFFFF", raised: "#F1EDE7", ink: "#1E1B18", sub: "#6A645E", line: "#E9E3DB", danger: "#B3372A", dangerSoft: "#FCE7E2", ok: "#2E7D52" };
+const BASE = { bg: "#F1F1F4", band: "#F1F1F4", card: C.white, raised: "#F1F1F4", ink: C.ink, sub: "#6B6B78", line: "#E4E4EA", accent: C.purple, onAccent: C.white, soft: "#F1F1F4", onHero: C.white, danger: "#D93A55", dangerSoft: C.pink, ok: C.green };
 
-export const ATTENDEE: Pal = { ...NEUTRAL, name: "attendee", accent: "#C2512F", onAccent: "#FFFFFF", soft: "#FFF1E9", hero: "#FFE1D2", onHero: "#3A1C12" };
-
-// Plan B active: the hero tile deepens so the change is obvious without flooding the screen.
-export const PLANB: Pal = { ...ATTENDEE, name: "planb", hero: "#FFC9AE" };
-
-export const ORGANIZER: Pal = { ...NEUTRAL, name: "organizer", accent: "#2E7D52", onAccent: "#FFFFFF", soft: "#E9F4EC", hero: "#2E7D52", onHero: "#FFFFFF" };
+export const ATTENDEE: Pal = { ...BASE, name: "attendee", hero: C.green };
+// Plan B active: the hero tile switches to a different colour, not a deeper shade.
+export const PLANB: Pal = { ...BASE, name: "planb", hero: C.pink };
+export const ORGANIZER: Pal = { ...BASE, name: "organizer", hero: C.green };
 
 // ---- type scale (no colours: components apply the palette) ----
 export const T = StyleSheet.create({
-  mega: { fontFamily: F.displayBold, fontSize: 68, lineHeight: 72, letterSpacing: -2 },
+  mega: { fontFamily: F.displayBold, fontSize: 64, lineHeight: 70, letterSpacing: -2 },
   huge: { fontFamily: F.displayBold, fontSize: 42, lineHeight: 46, letterSpacing: -1 },
   title: { fontFamily: F.displayBold, fontSize: 30, lineHeight: 35, letterSpacing: -0.6 },
-  headline: { fontFamily: F.display, fontSize: 22, lineHeight: 28, letterSpacing: -0.2 },
+  headline: { fontFamily: F.bodyBold, fontSize: 22, lineHeight: 28, letterSpacing: -0.2 },
   big: { fontFamily: F.bodySemi, fontSize: 18, lineHeight: 24 },
   eyebrow: { fontFamily: F.bodySemi, fontSize: 14, lineHeight: 19 }, // small sentence-case label, not tracked caps
   body: { fontFamily: F.body, fontSize: 17, lineHeight: 25 },
@@ -64,10 +72,10 @@ export const T = StyleSheet.create({
 
 export const s = StyleSheet.create({
   pressed: { opacity: 0.7 },
-  shadow: { shadowColor: "#3B2A1E", shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  shadow: { shadowColor: "#1B1B33", shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   row: { flexDirection: "row", alignItems: "center", gap: 14 },
   between: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
-  input: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1 },
+  input: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1 },
 });
 
 // ---- network + storage ----

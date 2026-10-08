@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { normalizeCrowd, type CrowdLevel, type CrowdState } from "../../lib/crowd-model";
 import { displayTime } from "./participant-model";
-import { F, getJSON, postJSON, s } from "./theme";
+import { C, F, getJSON, postJSON, s } from "./theme";
 import { Btn, Txt, usePal } from "./ui";
 
 const PATHS: [string, string][] = [
@@ -58,7 +58,7 @@ export default function CrowdPanel({ server }: { server: string }) {
     }
   }
 
-  const tone = (l: CrowdLevel) => (l === "closed" ? p.danger : l === "heavy" ? "#B4472F" : l === "moderate" ? "#8A6D1F" : p.accent);
+  const tone = (l: CrowdLevel) => (l === "closed" ? C.ink : l === "heavy" ? C.pink : l === "moderate" ? C.yellow : C.green);
 
   return (
     <View style={{ gap: 4 }}>
@@ -79,9 +79,9 @@ export default function CrowdPanel({ server }: { server: string }) {
                     key={level}
                     disabled={!!busy}
                     onPress={() => send({ route_id: id, level }, id)}
-                    style={({ pressed }) => [{ flex: 1, minHeight: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: on ? tone(level) : p.line, backgroundColor: on ? tone(level) : p.card }, pressed && s.pressed]}
+                    style={({ pressed }) => [{ flex: 1, minHeight: 36, borderRadius: 999, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: on ? tone(level) : p.line, backgroundColor: on ? tone(level) : p.card }, pressed && s.pressed]}
                   >
-                    <Text style={{ fontFamily: on ? F.bodySemi : F.body, fontSize: 14, color: on ? "#FFFFFF" : p.ink }}>{name}</Text>
+                    <Text style={{ fontFamily: on ? F.bodySemi : F.body, fontSize: 14, color: on ? (level === "moderate" ? C.ink : C.white) : p.ink }}>{name}</Text>
                   </Pressable>
                 );
               })}
