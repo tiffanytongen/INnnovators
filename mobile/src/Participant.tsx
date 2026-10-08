@@ -267,7 +267,9 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const pathLevel = crowd[st.route_id]?.level;
   const walk = routeLeg && connLeg ? routeLeg.walk_min + connLeg.walk_min : null;
   const covered = !!routeLeg?.covered && !!connLeg?.covered;
-  const stepFree = !!routeLeg?.step_free && !!connLeg?.step_free;
+  // Only worth saying to people who asked for step-free routes (wheelchair, pram, mobility needs).
+  const needsStepFree = bundle.profile.access.step_free || bundle.profile.access.wheelchair;
+  const stepFree = needsStepFree && !!routeLeg?.step_free && !!connLeg?.step_free;
   const leave = st.wait_until ?? closed?.leave ?? "22:30";
   const atStop = walk !== null ? addMin(leave, walk) : st.arrive;
   const gate = st.gate_id.replace("gate_", "");
