@@ -1,6 +1,6 @@
 // Plan schema (what Claude must return) + validator (what we accept).
 import { z } from "zod";
-import { site, placeById, serviceById, scenarios, toTime, type Profile } from "./data";
+import { site, placeById, serviceById, scenarios, toTime, textsContact, type Profile } from "./data";
 import { feasibleOptions, worldFor, closedPlaces, leaveTime, type Option } from "./options";
 import { assignmentFor } from "./allocate";
 import { parseScenario } from "./scenario";
@@ -152,7 +152,7 @@ export function validatePlan(raw: ClaudePlan, profile: Profile, scenario: string
   const fix = (s: z.infer<z.ZodObject<typeof Step>>, o: Option): PlanStep => ({
     ...s,
     transport: o.transport, // canonical names/platform from data, never model text
-    notify_contact: o.zone_change, // deterministic: zone moved → contact must be told
+    notify_contact: o.zone_change && textsContact(profile), // deterministic: zone moved and they opted in → contact is texted
     arrive: o.arrive,
   });
   return {
@@ -191,7 +191,7 @@ export function rulesFallbackPlan(profile: Profile, scenario: string): Plan | nu
     reason: o.facts.join("; "),
     text_localised: `Leave via ${o.gate_id.replace("gate_", "Gate ")}`,
     reason_localised: o.facts[o.facts.length - 1],
-    notify_contact: o.zone_change,
+    notify_contact: o.zone_change && textsContact(profile),
     arrive: o.arrive,
   });
   return {

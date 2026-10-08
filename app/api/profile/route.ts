@@ -17,7 +17,11 @@ export async function POST(req: Request) {
     lang: body.lang || "en",
     home:
       body.mode === "shuttle" ? { mode: "shuttle", booking: step_free ? "shuttle_acc_2245" : "shuttle_gen_2250" }
-      : body.mode === "pickup" ? { mode: "pickup", zone: body.zone || "pickup_zone_2", contact: body.contact || "parent" }
+      : body.mode === "pickup" ? {
+          mode: "pickup", zone: body.zone || "pickup_zone_2", contact: body.contact || "parent", notify: body.notify !== false,
+          // Only the last 3 digits are kept: enough to show who gets the (simulated) text.
+          ...(body.notify !== false && /\d{3}/.test(String(body.contact_phone ?? "")) ? { contact_phone: String(body.contact_phone).replace(/\D/g, "").slice(-3) } : {}),
+        }
       : { mode: "train", line: body.line || "Sandringham" },
     access: { wheelchair: !!body.wheelchair, step_free, low_vision: !!body.low_vision, sensory: !!body.sensory },
     under_18: Number(body.age) < 18,

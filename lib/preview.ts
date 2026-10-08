@@ -1,5 +1,5 @@
 // What staff see before approving: who's affected, sample messages, simulated SMS, human-only flags.
-import { loadProfiles, nameOf, type Profile, type Service } from "./data";
+import { loadProfiles, nameOf, textsContact, type Profile, type Service } from "./data";
 import { worldFor, closedPlaces, feasibleOptions, type Option } from "./options";
 import { allocate } from "./allocate";
 import { mapPayload } from "./map";
@@ -30,9 +30,17 @@ export function planFor(personId: string, code: string): { plan: Plan | null; ke
   return { plan: file.plans[key] ?? null, key, exact };
 }
 
-export function smsFor(p: Profile, plan: Plan) {
-  if (!plan.notify_contact || p.home.mode !== "pickup") return null;
-  return { to: `${p.name}'s ${p.home.contact}`, text: `Fieldday: pickup for ${p.name} has moved to ${nameOf(plan.transport.ref_id)}. ${p.name} has been told. Reply HELP for a volunteer.` };
+// Simulated text to a pickup contact who opted in at checkout, whenever Plan B changes the pickup:
+// a new pickup point, or a different time at the same point (e.g. waiting out a storm). Never sent for real.
+export function smsFor(p: Profile, plan: Plan, planA: Plan | null) {
+  if (p.home.mode !== "pickup" || !textsContact(p)) return null;
+  const to = `${p.name}'s ${p.home.contact}${p.home.contact_phone ? ` (…${p.home.contact_phone})` : ""}`;
+  const where = nameOf(plan.transport.ref_id).replace(/ \(.*/, "");
+  if (plan.notify_contact || (planA && planA.transport.ref_id !== plan.transport.ref_id))
+    return { to, text: `Fieldday: pickup for ${p.name} has moved to ${where}, around ${plan.arrive}. ${p.name} has been told. Reply HELP for a volunteer.` };
+  if (planA && planA.arrive !== plan.arrive)
+    return { to, text: `Fieldday: conditions have changed. Pickup for ${p.name} is still ${where}, now around ${plan.arrive} (was ${planA.arrive}). Reply HELP for a volunteer.` };
+  return null;
 }
 
 export function buildPreview(code: string) {
@@ -74,7 +82,7 @@ export function buildPreview(code: string) {
     const r = planFor(p.id, code);
     if (!r.plan) { missing++; continue; }
     if (r.exact) exact++; else fallback++;
-    const sms = smsFor(p, r.plan);
+    const sms = code === "NORMAL" ? null : smsFor(p, r.plan, planFor(p.id, "NORMAL").plan);
     if (sms) simulated_sms.push(sms);
     if (r.plan.needs_human) needs_human.push({ name: p.name, reason: r.plan.needs_human_reason ?? "flagged" });
   }

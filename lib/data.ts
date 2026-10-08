@@ -20,7 +20,7 @@ export type Profile = {
   name: string;
   age: number;
   lang: string;
-  home: { mode: "train"; line: string } | { mode: "shuttle"; booking: string } | { mode: "pickup"; zone: string; contact: string };
+  home: { mode: "train"; line: string } | { mode: "shuttle"; booking: string } | { mode: "pickup"; zone: string; contact: string; notify?: boolean; contact_phone?: string };
   access: { wheelchair: boolean; step_free: boolean; low_vision: boolean; sensory: boolean };
   under_18: boolean;
   first_timer: boolean;
@@ -83,3 +83,6 @@ export const toMin = (t: string) => {
   return h * 60 + m;
 };
 export const toTime = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+
+/** Pickup attendees whose contact gets a (simulated) text when Plan B changes their pickup. Opt-out at checkout; default on. */
+export const textsContact = (p: Profile) => p.home.mode === "pickup" && p.home.notify !== false;

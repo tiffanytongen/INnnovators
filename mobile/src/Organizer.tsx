@@ -234,7 +234,18 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
                 <Txt k="smallStrong" c="accent">planb.link/m3i9</Txt>
               </View>
               <Txt k="small" c="sub">Demo only: no real SMS or notification is sent.</Txt>
-              {preview.simulated_sms.length > 0 && <Txt k="small" c="sub">Also texts {preview.simulated_sms.map((m) => m.to).join(", ")} the new pickup point.</Txt>}
+              {preview.simulated_sms.length > 0 && (
+                <View style={{ gap: 6, marginTop: 8 }}>
+                  <Txt k="small" c="sub">Pickup contacts who opted in at checkout also get a text (simulated):</Txt>
+                  {preview.simulated_sms.slice(0, 3).map((m) => (
+                    <View key={m.to} style={{ backgroundColor: p.card, borderRadius: 22, borderBottomLeftRadius: 6, padding: 16, gap: 4, maxWidth: 320 }}>
+                      <Txt k="smallStrong">To {m.to}</Txt>
+                      <Txt k="small">{m.text}</Txt>
+                    </View>
+                  ))}
+                  {preview.simulated_sms.length > 3 && <Txt k="small" c="sub">+{preview.simulated_sms.length - 3} more</Txt>}
+                </View>
+              )}
             </View>
             <View style={{ gap: 6, marginTop: 4 }}>
               <Txt k="smallStrong" c="sub">What attendees will see</Txt>

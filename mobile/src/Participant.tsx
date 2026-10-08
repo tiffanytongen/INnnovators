@@ -356,7 +356,7 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
             {zones.length > 1 && step === 0 && (
               <View style={{ gap: 8, marginVertical: -6 }}>
                 <Pressable onPress={() => setPickZone(!pickZone)} style={({ pressed }) => [s.between, { minHeight: 44 }, pressed && s.pressed]}>
-                  <Txt k="small" c="sub">Starting from {name(zone)}</Txt>
+                  <Txt k="small" c="sub" style={{ flex: 1 }}>Starting from {name(zone)}</Txt>
                   <Txt k="smallStrong" c="accent">{pickZone ? "Done" : "Change"}</Txt>
                 </Pressable>
                 {pickZone && (

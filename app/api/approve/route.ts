@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
   const simulated_sms = loadProfiles().flatMap((p) => {
     const { plan } = planFor(p.id, c);
-    const sms = plan && smsFor(p, plan);
+    const sms = plan && c !== "NORMAL" ? smsFor(p, plan, planFor(p.id, "NORMAL").plan) : null;
     return sms ? [sms] : [];
   });
   const trigger = signTrigger(c);

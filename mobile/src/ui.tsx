@@ -1,6 +1,6 @@
 // Small building blocks shared by every screen (adapted from the earlier pastel design).
 // Everything reads the current palette, so the same component works for attendee and organizer.
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import { ATTENDEE, C, F, T, s, type Pal } from "./theme";
 
@@ -129,6 +129,34 @@ export function Check({ children }: { children: ReactNode }) {
         <Text style={{ fontFamily: F.bodyBold, fontSize: 12, color: C.white }}>✓</Text>
       </View>
       <Txt style={{ flex: 1 }}>{children}</Txt>
+    </View>
+  );
+}
+
+// Dropdown: a field showing the current choice; tap to open the list underneath.
+export function Select({ options, value, onChange, placeholder = "Choose…" }: { options: [string, string][]; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const p = usePal();
+  const [open, setOpen] = useState(false);
+  const current = options.find(([v]) => v === value)?.[1];
+  return (
+    <View style={{ gap: 6 }}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={({ pressed }) => [s.between, { minHeight: 54, paddingHorizontal: 18, borderRadius: 18, borderWidth: 1, borderColor: open ? p.accent : p.line, backgroundColor: p.card }, pressed && s.pressed]}>
+        <Txt c={current ? "ink" : "sub"}>{current ?? placeholder}</Txt>
+        <Txt k="bodyStrong" c="sub">{open ? "⌃" : "⌄"}</Txt>
+      </Pressable>
+      {open && (
+        <View style={[s.shadow, { backgroundColor: p.card, borderRadius: 18, paddingVertical: 6 }]}>
+          {options.map(([v, l]) => {
+            const on = v === value;
+            return (
+              <Pressable key={v} accessibilityRole="menuitem" accessibilityState={{ selected: on }} onPress={() => { onChange(v); setOpen(false); }} style={({ pressed }) => [s.between, { minHeight: 46, paddingHorizontal: 18 }, pressed && { backgroundColor: p.raised }]}>
+                <Txt k={on ? "bodyStrong" : "body"} c={on ? "accent" : "ink"}>{l}</Txt>
+                {on ? <Txt k="bodyStrong" c="accent">✓</Txt> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }

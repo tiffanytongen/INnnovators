@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { claude, MODEL, FALLBACK_OPTS } from "./claude";
-import { site, transport, scenarios, nameOf, type Profile } from "./data";
+import { site, transport, scenarios, nameOf, textsContact, type Profile } from "./data";
 import { feasibleOptions, worldFor, closedPlaces, leaveTime } from "./options";
 import { assignmentFor } from "./allocate";
 import { parseScenario, describePart } from "./scenario";
@@ -25,7 +25,7 @@ How to decide:
 - wait_at / wait_until: use when the right move is to stay somewhere safe and covered before moving, e.g. a wheelchair user waiting on the covered accessible platform while the 15,000-person exit surge passes, then moving with a volunteer. wait_until must be no later than the candidate's latest_leave. Otherwise null. (Waiting at the destination for a pickup is not wait_at — that's just the destination.)
 - volunteer_escort: true when a volunteer should meet them (wheelchair users in a disruption, a minor whose pickup changed, etc.).
 - needs_human: true ONLY for a medical condition, a lost/missing child, or a safety threat. Those are never AI-resolved; still give the safest candidate, but flag it. A minor whose pickup point moved is NOT needs_human — use volunteer_escort instead.
-- If a candidate says PICKUP_ZONE_CHANGES, the person's contact is messaged automatically by Fieldday — tell them that ("your parent has been sent the new pickup point"); don't ask them to do it.
+- If a candidate says PICKUP_ZONE_CHANGES, the person's contact is messaged automatically by Fieldday — tell them that ("your parent has been sent the new pickup point"); don't ask them to do it. If it also says CONTACT_NOT_OPTED_IN, nobody is texted: ask them to tell their contact the new pickup point.
 - alternatives: 1-3 OTHER candidates, best first, each with its own reason. These are shown offline when the person taps "Doesn't work for me".
 
 Writing:
@@ -71,7 +71,7 @@ Normal exit time from ${nameOf(profile.location_at_end)}: ${toTime(leaveTime(pro
 ${crowd}
 
 CANDIDATE OPTIONS (rules-checked, leaving at ${toTime(start)}):
-${options.map((o, i) => `${i + 1}.${isAssigned(o) ? " [ASSIGNED]" : ""} gate_id=${o.gate_id} route_id=${o.route_id} transport=${JSON.stringify(o.transport)} arrive=${o.arrive} latest_leave=${o.latest_leave}${o.zone_change ? " PICKUP_ZONE_CHANGES" : ""}${o.mode_change ? " MODE_CHANGE" : ""}\n   ${o.facts.join("\n   ")}`).join("\n")}
+${options.map((o, i) => `${i + 1}.${isAssigned(o) ? " [ASSIGNED]" : ""} gate_id=${o.gate_id} route_id=${o.route_id} transport=${JSON.stringify(o.transport)} arrive=${o.arrive} latest_leave=${o.latest_leave}${o.zone_change ? ` PICKUP_ZONE_CHANGES${textsContact(profile) ? "" : " CONTACT_NOT_OPTED_IN"}` : ""}${o.mode_change ? " MODE_CHANGE" : ""}\n   ${o.facts.join("\n   ")}`).join("\n")}
 
 Write the plan for ${profile.name} in ${LANG_NAMES[profile.lang] ?? profile.lang}.`,
   };
