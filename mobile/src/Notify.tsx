@@ -115,3 +115,28 @@ export function Banner({ note, sms, dark, onOpen, onDone }: { note: DemoNote; sm
     </Animated.View>
   );
 }
+
+// Simulated phone lock screen (organizer Demo controls: preview of the SMS the contact would get).
+const LOCK_BG = "#14142A";
+
+export function LockScreen({ notes, onOpen, compact }: { notes: DemoNote[]; onOpen?: (n: DemoNote) => void; compact?: boolean }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 15000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <View style={{ backgroundColor: LOCK_BG, borderRadius: compact ? 28 : 40, padding: compact ? 14 : 20, paddingTop: compact ? 18 : 36, gap: compact ? 8 : 12, minHeight: compact ? 0 : 560 }}>
+      <View style={{ alignItems: "center", marginBottom: compact ? 4 : 16 }}>
+        <Text style={{ fontFamily: F.bodySemi, fontSize: compact ? 13 : 17, color: "rgba(255,255,255,0.8)" }}>
+          {now.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}
+        </Text>
+        <Text style={{ fontFamily: F.displayBold, fontSize: compact ? 44 : 84, lineHeight: compact ? 50 : 92, color: C.white, letterSpacing: -2 }}>{hhmm(Math.floor(now.getTime() / 1000))}</Text>
+      </View>
+      {notes.length === 0
+        ? <Text style={[T.small, { color: "rgba(255,255,255,0.55)", textAlign: "center" }]}>No notifications</Text>
+        : [...notes].reverse().slice(0, compact ? 1 : 6).map((n) => <NoteCard key={n.id} note={n} sms dark compact={compact} onPress={onOpen ? () => onOpen(n) : undefined} />)}
+    </View>
+  );
+}
+

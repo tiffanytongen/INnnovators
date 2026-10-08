@@ -3,8 +3,7 @@
 // must-see artists and contact, and arrives on the right phone ~2 s later. Nothing is detected live or sent for real.
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { LockScreen } from "./ContactPhone";
-import type { DemoNote } from "./Notify";
+import { LockScreen, type DemoNote } from "./Notify";
 import { C, F, getJSON, postJSON, s, store } from "./theme";
 import { Btn, Select, Txt, onTile, usePal } from "./ui";
 
@@ -18,7 +17,7 @@ type Attendee = {
 const SCENARIOS: { key: Scenario; label: string; color: string; glyph: string; what: string }[] = [
   { key: "congestion", label: "A · Crowd congestion", color: C.pink, glyph: "!", what: "Simulated input: marks the path on their current plan as heavily congested. Their phone re-routes around it." },
   { key: "delay", label: "B · Schedule change", color: C.yellow, glyph: "+", what: "Simulated input: their next performance runs 20 minutes late. Their lineup updates." },
-  { key: "pickup", label: "C · Pickup notification", color: C.green, glyph: "✉", what: "Texts their saved pickup contact. Shown on the simulated contact phone, not the attendee's." },
+  { key: "pickup", label: "C · Pickup notification", color: C.green, glyph: "✉", what: "Texts their saved pickup contact (simulated SMS, previewed below), not the attendee." },
   { key: "priority", label: "D · Priority artist", color: C.purple, glyph: "★", what: "Reminds them their must-see artist starts in 15 minutes, with directions." },
 ];
 
@@ -53,7 +52,7 @@ export default function DemoControls({ server, onClose }: { server: string; onCl
     setError("");
     try {
       const r = await postJSON<{ note: DemoNote }>(`${server}/api/demo`, { action: "trigger", person_id: who.id, scenario: sc }, 10000);
-      setToast(`Demo notification triggered · arrives on ${sc === "pickup" ? `${who.contact?.name}'s phone` : `${who.name}'s phone`} in 2 s`);
+      setToast(sc === "pickup" ? `Demo notification triggered · simulated SMS to ${who.contact?.name}` : `Demo notification triggered · arrives on ${who.name}'s phone in 2 s`);
       if (sc === "pickup") setLastSms(r.note);
       await load();
     } catch (e) {
