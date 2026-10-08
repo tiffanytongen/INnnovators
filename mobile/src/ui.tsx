@@ -84,7 +84,7 @@ export function Field(props: TextInputProps) {
 export function Notice({ tone = "danger", children }: { tone?: "danger" | "ink"; children: ReactNode }) {
   const p = usePal();
   return (
-    <View style={{ backgroundColor: tone === "danger" ? "#FDE8E4" : p.raised, borderRadius: 14, padding: 14 }}>
+    <View style={{ backgroundColor: tone === "danger" ? p.dangerSoft : p.raised, borderRadius: 18, padding: 16 }}>
       <Txt k="bodyStrong" c={tone === "danger" ? "danger" : "ink"}>{children}</Txt>
     </View>
   );

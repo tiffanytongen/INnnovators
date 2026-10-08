@@ -5,7 +5,8 @@ import { Pressable, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
-import { Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold } from "@expo-google-fonts/jost";
+import { BricolageGrotesque_600SemiBold, BricolageGrotesque_700Bold } from "@expo-google-fonts/bricolage-grotesque";
+import { Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold } from "@expo-google-fonts/figtree";
 import Participant from "./src/Participant";
 import Organizer from "./src/Organizer";
 import { ATTENDEE, ORGANIZER, PLANB, F, defaultServer, store, type Pal } from "./src/theme";
@@ -14,7 +15,10 @@ import { PalContext } from "./src/ui";
 type Mode = "participant" | "organizer";
 
 export default function App() {
-  const [fontsLoaded] = useFonts({ Jost_400Regular, Jost_500Medium, Jost_600SemiBold, Jost_700Bold });
+  const [fontsLoaded] = useFonts({
+    BricolageGrotesque_600SemiBold, BricolageGrotesque_700Bold,
+    Figtree_400Regular, Figtree_500Medium, Figtree_600SemiBold, Figtree_700Bold,
+  });
   const [ready, setReady] = useState(false);
   const [mode, setMode] = useState<Mode>("participant");
   const [server, setServer] = useState(defaultServer());
@@ -47,14 +51,14 @@ export default function App() {
       <PalContext.Provider value={pal}>
         <StatusBar style="dark" />
         <SafeAreaView style={{ flex: 1, backgroundColor: pal.band }} edges={["top"]}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 6, backgroundColor: pal.band }}>
-            <Text style={{ fontFamily: F.displayBold, fontSize: 22, color: pal.ink }}>Plan B</Text>
-            <View style={{ flexDirection: "row", padding: 4, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.55)" }}>
+          {/* Demo role switch only (no wordmark). Left-aligned so Expo Go's floating dev button doesn't cover it. */}
+          <View style={{ flexDirection: "row", paddingHorizontal: 20, paddingTop: 6, paddingBottom: 8, backgroundColor: pal.band }}>
+            <View style={{ flexDirection: "row", padding: 4, borderRadius: 999, backgroundColor: pal.raised }}>
               {(["participant", "organizer"] as Mode[]).map((m) => {
                 const on = mode === m;
                 return (
-                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 36, paddingHorizontal: 14, borderRadius: 999, justifyContent: "center", backgroundColor: on ? "#FFFFFF" : "transparent" }}>
-                    <Text style={{ fontFamily: on ? F.bodySemi : F.body, fontSize: 14, color: on ? pal.ink : pal.sub }}>{m === "participant" ? "Participant" : "Organizer"}</Text>
+                  <Pressable key={m} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => pick(m)} style={{ minHeight: 36, paddingHorizontal: 16, borderRadius: 999, justifyContent: "center", backgroundColor: on ? pal.card : "transparent" }}>
+                    <Text style={{ fontFamily: on ? F.bodySemi : F.body, fontSize: 14, color: on ? pal.ink : pal.sub }}>{m === "participant" ? "Attendee" : "Organizer"}</Text>
                   </Pressable>
                 );
               })}

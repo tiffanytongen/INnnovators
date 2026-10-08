@@ -1,28 +1,29 @@
 // Shared look, type and network helpers.
 //
-// Two identities, restored from the earlier pastel design:
-//   Attendee  — warm cream with peach; deepens to coral when Plan B is active.
-//   Organizer — muted pale green: calm, operational.
-// Type: Jost throughout (bold, tight display headings; regular body).
+// A neutral, layered base (warm off-white, white cards, dark ink) for both roles; colour guides attention:
+//   Attendee  — peach accent: the "leave at" hero tile and the main action.
+//   Organizer — green accent: solved/apply tiles and actions.
+//   Semantic  — red for "needs you"/warnings, map colours on the map.
+// Type: Bricolage Grotesque for headings and big numbers, Figtree for reading text.
 import { StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
 // ---- fonts (loaded in App.tsx; family name = the key passed to useFonts) ----
 export const F = {
-  display: "Jost_600SemiBold",
-  displayBold: "Jost_700Bold",
-  body: "Jost_400Regular",
-  bodyMed: "Jost_500Medium",
-  bodySemi: "Jost_600SemiBold",
-  bodyBold: "Jost_700Bold",
+  display: "BricolageGrotesque_600SemiBold",
+  displayBold: "BricolageGrotesque_700Bold",
+  body: "Figtree_400Regular",
+  bodyMed: "Figtree_500Medium",
+  bodySemi: "Figtree_600SemiBold",
+  bodyBold: "Figtree_700Bold",
 };
 
 // ---- palettes ----
 export type Pal = {
   name: "attendee" | "planb" | "organizer";
-  bg: string; // screen
-  band: string; // header band
+  bg: string; // screen: warm off-white
+  band: string; // top bar / header area: neutral, never flooded with accent
   card: string;
   raised: string; // inputs, inner panels
   ink: string;
@@ -30,54 +31,31 @@ export type Pal = {
   line: string;
   accent: string; // the one primary action colour
   onAccent: string;
-  soft: string; // tinted highlight behind key info
+  soft: string; // light accent tint for small highlights
+  hero: string; // the one strong colour tile per screen (attendee: leave-at; organizer: solved)
+  onHero: string;
   danger: string;
+  dangerSoft: string;
   ok: string;
 };
 
-export const ATTENDEE: Pal = {
-  name: "attendee",
-  bg: "#FBF6F1",
-  band: "#FCE6D8",
-  card: "#FFFFFF",
-  raised: "#F8EEE6",
-  ink: "#2B1E1A",
-  sub: "#6B5650",
-  line: "#EFE2D9",
-  accent: "#B4472F",
-  onAccent: "#FFFFFF",
-  soft: "#FFF1E8",
-  danger: "#B33A2B",
-  ok: "#2F7A4E",
-};
+const NEUTRAL = { bg: "#F7F5F1", band: "#F7F5F1", card: "#FFFFFF", raised: "#F1EDE7", ink: "#1E1B18", sub: "#6A645E", line: "#E9E3DB", danger: "#B3372A", dangerSoft: "#FCE7E2", ok: "#2E7D52" };
 
-// Plan B active: same family, the band deepens to coral so the change is obvious without shouting.
-export const PLANB: Pal = { ...ATTENDEE, name: "planb", band: "#FFCDBB", soft: "#FFE3DA" };
+export const ATTENDEE: Pal = { ...NEUTRAL, name: "attendee", accent: "#C2512F", onAccent: "#FFFFFF", soft: "#FFF1E9", hero: "#FFE1D2", onHero: "#3A1C12" };
 
-export const ORGANIZER: Pal = {
-  name: "organizer",
-  bg: "#F4F8F3",
-  band: "#D6EBD9",
-  card: "#FFFFFF",
-  raised: "#EEF5EE",
-  ink: "#1E2B23",
-  sub: "#56655B",
-  line: "#E1EAE2",
-  accent: "#2F7A4E",
-  onAccent: "#FFFFFF",
-  soft: "#E6F2E8",
-  danger: "#B33A2B",
-  ok: "#2F7A4E",
-};
+// Plan B active: the hero tile deepens so the change is obvious without flooding the screen.
+export const PLANB: Pal = { ...ATTENDEE, name: "planb", hero: "#FFC9AE" };
+
+export const ORGANIZER: Pal = { ...NEUTRAL, name: "organizer", accent: "#2E7D52", onAccent: "#FFFFFF", soft: "#E9F4EC", hero: "#2E7D52", onHero: "#FFFFFF" };
 
 // ---- type scale (no colours: components apply the palette) ----
 export const T = StyleSheet.create({
-  mega: { fontFamily: F.displayBold, fontSize: 64, lineHeight: 68, letterSpacing: -1.5 },
-  huge: { fontFamily: F.displayBold, fontSize: 40, lineHeight: 44, letterSpacing: -0.8 },
-  title: { fontFamily: F.displayBold, fontSize: 30, lineHeight: 35, letterSpacing: -0.4 },
-  headline: { fontFamily: F.display, fontSize: 22, lineHeight: 28 },
+  mega: { fontFamily: F.displayBold, fontSize: 68, lineHeight: 72, letterSpacing: -2 },
+  huge: { fontFamily: F.displayBold, fontSize: 42, lineHeight: 46, letterSpacing: -1 },
+  title: { fontFamily: F.displayBold, fontSize: 30, lineHeight: 35, letterSpacing: -0.6 },
+  headline: { fontFamily: F.display, fontSize: 22, lineHeight: 28, letterSpacing: -0.2 },
   big: { fontFamily: F.bodySemi, fontSize: 18, lineHeight: 24 },
-  eyebrow: { fontFamily: F.bodySemi, fontSize: 15, lineHeight: 20 }, // small sentence-case label, not tracked caps
+  eyebrow: { fontFamily: F.bodySemi, fontSize: 14, lineHeight: 19 }, // small sentence-case label, not tracked caps
   body: { fontFamily: F.body, fontSize: 17, lineHeight: 25 },
   bodyStrong: { fontFamily: F.bodySemi, fontSize: 17, lineHeight: 25 },
   small: { fontFamily: F.body, fontSize: 15, lineHeight: 21 },
@@ -86,7 +64,7 @@ export const T = StyleSheet.create({
 
 export const s = StyleSheet.create({
   pressed: { opacity: 0.7 },
-  shadow: { shadowColor: "#2B1E1A", shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  shadow: { shadowColor: "#3B2A1E", shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   row: { flexDirection: "row", alignItems: "center", gap: 14 },
   between: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   input: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: F.body, fontSize: 17, borderWidth: 1 },
