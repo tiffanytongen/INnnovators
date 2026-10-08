@@ -244,6 +244,11 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const [pickZone, setPickZone] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  // The hero's arrow scrolls down to the journey tiles (gate → ride).
+  const scroller = useRef<ScrollView>(null);
+  const sheetY = useRef(0);
+  const journeyY = useRef(0);
+  const showJourney = () => scroller.current?.scrollTo({ y: Math.max(0, sheetY.current + journeyY.current - 16), animated: true });
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 20000);
     return () => clearInterval(id);
@@ -282,11 +287,11 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
   const countdown = minsUntil(leave, now);
 
   const transportGlyph = "↗";
-  const rideTitle = st.transport.depart ? transportTitle.replace(` ${st.transport.depart}`, "") : transportTitle;
+  const rideTitle = st.transport.mode === "pickup" ? name(st.transport.ref_id).replace(/ \(.*/, "") : st.transport.depart ? transportTitle.replace(` ${st.transport.depart}`, "") : transportTitle;
   const onHero = C.white;
 
   return (
-    <ScrollView style={{ backgroundColor: p.bg }} contentContainerStyle={{ paddingBottom: 48, flexGrow: 1 }}>
+    <ScrollView ref={scroller} style={{ backgroundColor: p.bg }} contentContainerStyle={{ paddingBottom: 48, flexGrow: 1 }}>
       {/* Map across the top, with the route highlighted; the white sheet slides over it */}
       {bundle.map && !escalating ? (
         <SiteMap
@@ -299,7 +304,7 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
         />
       ) : null}
 
-      <View style={{ flexGrow: 1, backgroundColor: p.card, borderTopLeftRadius: 36, borderTopRightRadius: 36, marginTop: bundle.map && !escalating ? -36 : 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 18 }}>
+      <View onLayout={(e) => { sheetY.current = e.nativeEvent.layout.y; }} style={{ flexGrow: 1, backgroundColor: p.card, borderTopLeftRadius: 36, borderTopRightRadius: 36, marginTop: bundle.map && !escalating ? -36 : 8, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 18 }}>
         <View style={{ alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: p.line }} />
 
         {/* 1. What changed */}
@@ -340,7 +345,9 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
                   {step > 0 ? `${t.option} ${step + 1} ${t.of} ${steps.length} · ` : ""}
                   {countdown === null ? (isPlanB ? t.leaveAt : t.bestTime) : countdown <= 0 ? t.leaveNow : t.leaveIn}
                 </Txt>
-                <Dot glyph="→" color={p.hero} size={36} />
+                <Pressable accessibilityRole="button" accessibilityLabel="Show the journey" onPress={showJourney} hitSlop={12} style={({ pressed }) => pressed && s.pressed}>
+                  <Dot glyph="↓" color={p.hero} size={40} />
+                </Pressable>
               </View>
               <Txt k="mega" style={{ color: onHero }}>{countdown !== null && countdown > 0 ? `${countdown} ${t.minShort}` : leave}</Txt>
               {countdown !== null && countdown > 0 ? <Txt k="bodyStrong" style={{ color: onHero }}>{t.atTime} {leave}</Txt> : null}
@@ -369,7 +376,7 @@ function AttendeeScreen({ bundle, plan, scenarioKey, isPlanB, exact, trigger, on
             )}
 
             {/* 3. The journey as two flat tiles: walk to the gate → ride */}
-            <View style={{ flexDirection: "row", gap: 12 }}>
+            <View onLayout={(e) => { journeyY.current = e.nativeEvent.layout.y; }} style={{ flexDirection: "row", gap: 12 }}>
               <Tile color={C.yellow} glyph={gate} style={{ flex: 1, minHeight: 170 }}>
                 <Txt k="headline" style={{ color: onTile(C.yellow) }}>{t.gate} {gate}</Txt>
                 {walk !== null ? <Txt k="smallStrong" style={{ color: onTile(C.yellow) }}>{walk} {t.minWalk}</Txt> : null}
