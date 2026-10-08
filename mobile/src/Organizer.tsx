@@ -12,9 +12,6 @@ import DemoControls from "./DemoControls";
 import { C, F, getJSON, postJSON, s } from "./theme";
 import { Btn, Card, Check, Field, Notice, Tile, Txt, usePal } from "./ui";
 
-const DEMO_TEXT = "Storm at 11pm, Gate A closed, Sandringham line +25 min, accessible shuttle full";
-// Demo: a restriction no pre-made contingency plan covers (path + pickup zone closures), to show live AI replanning.
-const NEW_TEXT = "Tree down across the canopy walk to Gate B, it's closed. Pickup Zone 1 is shut too, police need Batman Ave.";
 const WHO: Record<string, string> = { mei_19: "Mei · reads Mandarin", tom_70: "Tom · wheelchair", jake_16: "Jake, 16 · parent pickup" };
 const CAUSE: Record<ScenarioPart["type"], string> = {
   STORM: "severe weather", GATE_CLOSED: "a gate closure", TRAIN_DELAY: "train delays", SHUTTLE_FULL: "a full shuttle", HEAT: "extreme heat", SET_DELAY: "a stage running late", PATH_CLOSED: "a path closure", PLACE_CLOSED: "a pickup point closure",
@@ -106,7 +103,7 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
   const p = usePal();
   const { busy, error, run } = useRun();
   const [normal, setNormal] = useState<Preview | null>(null);
-  const [text, setText] = useState(DEMO_TEXT);
+  const [text, setText] = useState("");
   const [parsed, setParsed] = useState<Parsed | null>(null);
   const [parts, setParts] = useState<ScenarioPart[]>([]);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -115,6 +112,7 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
   const [approver, setApprover] = useState("Jess");
   const [sent, setSent] = useState(false);
   const [replan, setReplan] = useState<Replan | null>(null);
+  const [replanning, setReplanning] = useState(false);
   const [published, setPublished] = useState<{ ai: number; kept: number; manual: number } | null>(null);
 
   useEffect(() => {
@@ -130,22 +128,39 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
       const r = await postJSON<Parsed>(`${server}/api/parse`, { text });
       setParsed(r);
       setParts(r.parts);
-      if (r.code) setPreview(await postJSON<Preview>(`${server}/api/preview`, { code: r.code }));
+      if (r.code) await showPreview(r.code);
     });
+  // Preview the situation; if no pre-made plan covers it for some attendees, Claude replans them straight away
+  // (a proposal only: nothing is sent until someone approves).
+  const showPreview = async (code: string) => {
+    const pv = await postJSON<Preview>(`${server}/api/preview`, { code });
+    setPreview(pv);
+    if (pv.replan.affected > 0) void runReplan(code);
+  };
   const removePart = (i: number) =>
     run("update", async () => {
       const next = parts.filter((_, j) => j !== i);
       setParts(next);
       setSent(false);
       setReplan(null);
-      setPreview(next.length ? await postJSON<Preview>(`${server}/api/preview`, { code: canonical(next) }) : null);
+      if (next.length) await showPreview(canonical(next));
+      else setPreview(null);
     });
   const send = () => run("send", async () => {
     const r = await postJSON<{ replan?: { ai: number; kept: number; manual: number } }>(`${server}/api/approve`, { code: preview!.code, approved_by: approver, original_text: text });
     setPublished(r.replan ?? null);
     setSent(true);
   });
-  const runReplan = () => run("replan", async () => setReplan(await postJSON<Replan>(`${server}/api/replan`, { code: preview!.code, text }, 240000)));
+  const runReplan = async (code: string) => {
+    setReplanning(true);
+    try {
+      setReplan(await postJSON<Replan>(`${server}/api/replan`, { code, text }, 240000));
+    } catch {
+      setReplan(null); // the retry button appears; approving without it sends affected people to staff
+    } finally {
+      setReplanning(false);
+    }
+  };
   const allClear = () =>
     run("reset", async () => {
       await postJSON(`${server}/api/approve`, { code: "NORMAL", approved_by: approver, original_text: "All clear" });
@@ -171,13 +186,6 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
         {/* Something changed? */}
         <View style={{ gap: 10 }}>
           <Txt k="headline">Something changed?</Txt>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            {([["Demo: storm (pre-planned)", DEMO_TEXT], ["Demo: new restriction (not pre-planned)", NEW_TEXT]] as const).map(([l, v]) => (
-              <Pressable key={l} accessibilityRole="button" onPress={() => { setText(v); setPreview(null); setParsed(null); setReplan(null); setSent(false); }} style={({ pressed }) => [{ paddingHorizontal: 12, minHeight: 32, justifyContent: "center", borderRadius: 999, borderWidth: 1, borderColor: text === v ? p.accent : p.line, backgroundColor: p.card }, pressed && s.pressed]}>
-                <Text style={{ fontFamily: F.bodySemi, fontSize: 13, color: text === v ? p.accent : p.sub }}>{l}</Text>
-              </Pressable>
-            ))}
-          </View>
           <Field value={text} onChangeText={setText} multiline placeholder="Say it like a radio call: storm at 11, gate A shut" style={{ minHeight: 84, textAlignVertical: "top" }} />
           {!preview && <Btn title={busy === "check" ? "Reading…" : "Check"} onPress={check} busy={busy === "check"} disabled={!text.trim()} />}
           {parsed && (
@@ -259,9 +267,9 @@ function Tonight({ server, onFix }: { server: string; onFix: (code: string) => v
                 {preview.replan.premade + preview.replan.still_valid} keep a pre-made plan that is still valid. Claude writes new plans from routes recalculated for these restrictions; every plan is checked against real gates, paths, timetables and gate capacity.
               </Txt>
               {!replan && (
-                <Pressable accessibilityRole="button" onPress={runReplan} disabled={busy === "replan"} style={({ pressed }) => [{ minHeight: 50, borderRadius: 999, backgroundColor: C.white, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 4 }, (pressed || busy === "replan") && s.pressed]}>
-                  {busy === "replan" && <ActivityIndicator color={C.purple} />}
-                  <Txt k="big" style={{ color: C.purple }}>{busy === "replan" ? "Claude is replanning…" : "Replan with AI"}</Txt>
+                <Pressable accessibilityRole="button" onPress={() => runReplan(preview.code)} disabled={replanning} style={({ pressed }) => [{ minHeight: 50, borderRadius: 999, backgroundColor: C.white, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, marginTop: 4 }, (pressed || replanning) && s.pressed]}>
+                  {replanning && <ActivityIndicator color={C.purple} />}
+                  <Txt k="big" style={{ color: C.purple }}>{replanning ? "Claude is writing new plans…" : "Couldn't reach Claude · try again"}</Txt>
                 </Pressable>
               )}
             </View>
